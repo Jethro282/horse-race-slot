@@ -52,6 +52,9 @@
       height: 100%;
       background: white;
     }
+    .controls {
+      margin: 15px;
+    }
     button {
       padding: 10px 20px;
       font-size: 16px;
@@ -59,83 +62,11 @@
       border: none;
       cursor: pointer;
     }
+    .stats {
+      margin-top: 10px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
-  <h1>🐎 Horse Race Slot Game</h1>
-  <p>Pick a horse and spin the race!</p>
-
-  <div id="odds"></div>
-
-  <div class="track" id="track"></div>
-
-  <button onclick="startRace()">Start Race</button>
-
-  <script>
-    const horses = [
-      { name: "Thunderbolt", odds: 2.0 },
-      { name: "Midnight", odds: 3.5 },
-      { name: "Red Comet", odds: 5.0 },
-      { name: "Silver Wind", odds: 4.0 },
-      { name: "Iron Hoof", odds: 6.0 },
-      { name: "Lucky Star", odds: 8.0 }
-    ];
-
-    const track = document.getElementById('track');
-    const oddsDiv = document.getElementById('odds');
-
-    function setup() {
-      track.innerHTML = '';
-      oddsDiv.innerHTML = '<h3>Odds</h3>' + horses.map(h => `${h.name}: ${h.odds}x`).join('<br>');
-
-      horses.forEach((horse, i) => {
-        const lane = document.createElement('div');
-        lane.className = 'lane';
-
-        const horseDiv = document.createElement('div');
-        horseDiv.className = 'horse';
-        horseDiv.innerText = horse.name.split(' ')[0];
-        horseDiv.id = `horse-${i}`;
-
-        const barrier = document.createElement('div');
-        barrier.className = 'barrier';
-
-        const finish = document.createElement('div');
-        finish.className = 'finish';
-
-        lane.appendChild(horseDiv);
-        lane.appendChild(barrier);
-        lane.appendChild(finish);
-        track.appendChild(lane);
-      });
-    }
-
-    function weightedRandom() {
-      const total = horses.reduce((sum, h) => sum + 1 / h.odds, 0);
-      let r = Math.random() * total;
-      for (let i = 0; i < horses.length; i++) {
-        r -= 1 / horses[i].odds;
-        if (r <= 0) return i;
-      }
-      return horses.length - 1;
-    }
-
-    function startRace() {
-      const winner = weightedRandom();
-
-      horses.forEach((_, i) => {
-        const horse = document.getElementById(`horse-${i}`);
-        horse.style.transition = 'left 2s ease-out';
-        horse.style.left = i === winner ? '90%' : `${60 + Math.random() * 20}%`;
-      });
-
-      setTimeout(() => {
-        alert(`🏆 Winner: ${horses[winner].name}!`);
-        setup();
-      }, 2200);
-    }
-
-    setup();
-  </script>
-</body>
-</html>
+  <h1>🐎 Horse Race Slot Game<
