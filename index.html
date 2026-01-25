@@ -138,9 +138,9 @@
   ];
 
   let horses = [];
-  let balance = 50;
-  let lastTopUp = null;
-  let history = [];
+  let balance = Number(localStorage.getItem("balance")) || 50;
+  let lastTopUp = Number(localStorage.getItem("lastTopUp")) || null;
+  let history = JSON.parse(localStorage.getItem("history")) || [];
 
   const balanceSpan = document.getElementById("balance");
   const track = document.getElementById("track");
@@ -151,6 +151,7 @@
 
   function updateBalance() {
     balanceSpan.textContent = balance.toFixed(2);
+    localStorage.setItem("balance", balance);
   }
 
   function randomOdds() {
@@ -237,6 +238,7 @@
       });
 
       history = history.slice(0, 5);
+      localStorage.setItem("history", JSON.stringify(history));
       renderHistory();
       setupRace();
     }, 2200);
@@ -258,10 +260,12 @@
     }
     balance += 50;
     lastTopUp = now;
+    localStorage.setItem("lastTopUp", lastTopUp);
     updateBalance();
   }
 
   updateBalance();
+  renderHistory();
   setupRace();
 </script>
 
