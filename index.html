@@ -14,29 +14,24 @@
       padding: 20px;
     }
 
-    h1 {
-      margin-bottom: 10px;
-    }
+    h1 { margin-bottom: 10px; }
 
-    .controls {
-      margin: 15px 0;
-    }
+    .controls { margin: 15px 0; }
 
-    select, button {
+    select, button, input {
       padding: 8px 12px;
       font-size: 16px;
       border-radius: 6px;
       border: none;
-      margin-left: 8px;
+      margin: 4px;
     }
 
-    button {
-      cursor: pointer;
-    }
+    button { cursor: pointer; }
 
-    .stats {
-      margin: 10px 0;
+    .balance {
+      font-size: 18px;
       font-weight: bold;
+      margin: 10px 0;
     }
 
     .track {
@@ -56,28 +51,25 @@
       overflow: hidden;
     }
 
-    /* Container that moves */
     .runner {
       position: absolute;
       left: 0;
       top: 6px;
       transition: left 2s ease-out;
       text-align: center;
-      width: 120px;
+      width: 140px;
     }
 
     .horse-name {
-      font-size: 14px;       /* 🔼 increased */
+      font-size: 14px;
       font-weight: bold;
-      line-height: 16px;
       margin-bottom: 2px;
       white-space: nowrap;
     }
 
     .horse {
       font-size: 32px;
-      line-height: 36px;
-      transform: scaleX(-1); /* face right */
+      transform: scaleX(-1);
       user-select: none;
     }
 
@@ -99,140 +91,179 @@
       background: white;
     }
 
-    #odds {
+    #odds, #history {
       margin-top: 10px;
+    }
+
+    #history {
+      background: rgba(0,0,0,0.2);
+      padding: 10px;
+      border-radius: 8px;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+      text-align: left;
     }
   </style>
 </head>
-
 <body>
 
-  <h1>🐎 Horse Race Slot Game</h1>
-  <p>Select a horse and start the race</p>
+<h1>🐎 Horse Race Slot Game</h1>
 
-  <div class="controls">
-    <label for="horseSelect">Pick a horse:</label>
-    <select id="horseSelect"></select>
-  </div>
+<div class="balance">Account Balance: $<span id="balance">50.00</span></div>
 
-  <div id="odds"></div>
+<div class="controls">
+  <label>Pick a horse:</label>
+  <select id="horseSelect"></select><br>
 
-  <div class="stats">
-    Correct picks: <span id="wins">0</span>
-  </div>
+  <label>Bet Amount ($):</label>
+  <input type="number" id="betAmount" min="1" step="1">
+</div>
 
-  <div class="track" id="track"></div>
+<button onclick="startRace()">Start Race</button>
+<button onclick="topUp()">Free $50 Top Up</button>
 
-  <button onclick="startRace()">Start Race</button>
+<div id="odds"></div>
 
-  <script>
-    const namePool = [
-      "Thunderbolt", "Midnight Run", "Red Comet", "Silver Wind",
-      "Iron Hoof", "Lucky Star", "Golden Mane", "Storm Chaser",
-      "Black Arrow", "Firefly", "Desert King", "Ocean Whisper"
-    ];
+<div class="track" id="track"></div>
 
-    let horses = [];
-    let wins = 0;
+<h3>Race History (Last 5)</h3>
+<div id="history"></div>
 
-    const track = document.getElementById("track");
-    const oddsDiv = document.getElementById("odds");
-    const horseSelect = document.getElementById("horseSelect");
-    const winsSpan = document.getElementById("wins");
+<script>
+  const namePool = [
+    "Thunderbolt", "Midnight Run", "Red Comet", "Silver Wind",
+    "Iron Hoof", "Lucky Star", "Golden Mane", "Storm Chaser",
+    "Black Arrow", "Firefly", "Desert King", "Ocean Whisper"
+  ];
 
-    function randomOdds() {
-      return Number((Math.random() * 7 + 1.5).toFixed(2)); // numeric odds
+  let horses = [];
+  let balance = 50;
+  let lastTopUp = null;
+  let history = [];
+
+  const balanceSpan = document.getElementById("balance");
+  const track = document.getElementById("track");
+  const oddsDiv = document.getElementById("odds");
+  const horseSelect = document.getElementById("horseSelect");
+  const betInput = document.getElementById("betAmount");
+  const historyDiv = document.getElementById("history");
+
+  function updateBalance() {
+    balanceSpan.textContent = balance.toFixed(2);
+  }
+
+  function randomOdds() {
+    return Number((Math.random() * 7 + 1.5).toFixed(2));
+  }
+
+  function formatOdds(o) {
+    return `$${o.toFixed(2)}`;
+  }
+
+  function generateHorses() {
+    const shuffled = [...namePool].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 6).map(name => ({ name, odds: randomOdds() }));
+  }
+
+  function setupRace() {
+    horses = generateHorses();
+    track.innerHTML = "";
+    oddsDiv.innerHTML = "<h3>Horses & Odds</h3>";
+    horseSelect.innerHTML = "";
+
+    horses.forEach((horse, index) => {
+      oddsDiv.innerHTML += `${horse.name} — ${formatOdds(horse.odds)}<br>`;
+
+      const opt = document.createElement("option");
+      opt.value = index;
+      opt.textContent = `${horse.name} (${formatOdds(horse.odds)})`;
+      horseSelect.appendChild(opt);
+
+      const lane = document.createElement("div");
+      lane.className = "lane";
+
+      const runner = document.createElement("div");
+      runner.className = "runner";
+      runner.id = `runner-${index}`;
+
+      runner.innerHTML = `<div class='horse-name'>${horse.name}</div><div class='horse'>🐎</div>`;
+
+      lane.appendChild(runner);
+      lane.appendChild(Object.assign(document.createElement("div"), { className: "barrier" }));
+      lane.appendChild(Object.assign(document.createElement("div"), { className: "finish" }));
+      track.appendChild(lane);
+    });
+  }
+
+  function weightedRandomWinner() {
+    const total = horses.reduce((s, h) => s + 1 / h.odds, 0);
+    let r = Math.random() * total;
+    for (let i = 0; i < horses.length; i++) {
+      r -= 1 / horses[i].odds;
+      if (r <= 0) return i;
     }
+    return horses.length - 1;
+  }
 
-    function formatOdds(odds) {
-      return `$${odds.toFixed(2)}`;
-    }
+  function startRace() {
+    const bet = Number(betInput.value);
+    if (!bet || bet <= 0) return alert("Enter a valid bet amount");
+    if (bet > balance) return alert("Insufficient balance");
 
-    function generateHorses() {
-      const shuffled = [...namePool].sort(() => Math.random() - 0.5);
-      return shuffled.slice(0, 6).map(name => ({
-        name,
-        odds: randomOdds()
-      }));
-    }
+    balance -= bet;
+    updateBalance();
 
-    function setupRace() {
-      horses = generateHorses();
-      track.innerHTML = "";
-      oddsDiv.innerHTML = "<h3>Horses & Odds</h3>";
-      horseSelect.innerHTML = "";
+    const selected = Number(horseSelect.value);
+    const winner = weightedRandomWinner();
 
-      horses.forEach((horse, index) => {
-        oddsDiv.innerHTML += `${horse.name} — ${formatOdds(horse.odds)}<br>`;
+    horses.forEach((_, i) => {
+      document.getElementById(`runner-${i}`).style.left = i === winner ? "90%" : `${60 + Math.random() * 20}%`;
+    });
 
-        const option = document.createElement("option");
-        option.value = index;
-        option.textContent = `${horse.name} (${formatOdds(horse.odds)})`;
-        horseSelect.appendChild(option);
-
-        const lane = document.createElement("div");
-        lane.className = "lane";
-
-        const runner = document.createElement("div");
-        runner.className = "runner";
-        runner.id = `runner-${index}`;
-
-        const nameDiv = document.createElement("div");
-        nameDiv.className = "horse-name";
-        nameDiv.textContent = horse.name;
-
-        const horseDiv = document.createElement("div");
-        horseDiv.className = "horse";
-        horseDiv.textContent = "🐎";
-
-        const barrier = document.createElement("div");
-        barrier.className = "barrier";
-
-        const finish = document.createElement("div");
-        finish.className = "finish";
-
-        runner.appendChild(nameDiv);
-        runner.appendChild(horseDiv);
-        lane.appendChild(runner);
-        lane.appendChild(barrier);
-        lane.appendChild(finish);
-        track.appendChild(lane);
-      });
-    }
-
-    function weightedRandomWinner() {
-      const total = horses.reduce((sum, h) => sum + 1 / h.odds, 0);
-      let r = Math.random() * total;
-
-      for (let i = 0; i < horses.length; i++) {
-        r -= 1 / horses[i].odds;
-        if (r <= 0) return i;
+    setTimeout(() => {
+      let winnings = 0;
+      if (selected === winner) {
+        winnings = bet * horses[winner].odds;
+        balance += winnings;
+        updateBalance();
       }
-      return horses.length - 1;
-    }
 
-    function startRace() {
-      const selectedHorse = parseInt(horseSelect.value);
-      const winner = weightedRandomWinner();
-
-      horses.forEach((_, i) => {
-        const runner = document.getElementById(`runner-${i}`);
-        runner.style.left = i === winner ? "90%" : `${60 + Math.random() * 20}%`;
+      history.unshift({
+        winner: horses[winner].name,
+        odds: formatOdds(horses[winner].odds),
+        picked: horses[selected].name,
+        winnings: winnings.toFixed(2)
       });
 
-      setTimeout(() => {
-        if (selectedHorse === winner) {
-          wins++;
-          winsSpan.textContent = wins;
-        }
+      history = history.slice(0, 5);
+      renderHistory();
+      setupRace();
+    }, 2200);
+  }
 
-        alert(`🏆 Winner: ${horses[winner].name}`);
-        setupRace();
-      }, 2200);
+  function renderHistory() {
+    historyDiv.innerHTML = history.map(h =>
+      `🏁 Winner: ${h.winner} (${h.odds})<br>` +
+      `🎯 Picked: ${h.picked}<br>` +
+      `💰 Winnings: $${h.winnings}<hr>`
+    ).join("");
+  }
+
+  function topUp() {
+    const now = Date.now();
+    if (lastTopUp && now - lastTopUp < 86400000) {
+      alert("Only 1 free top is allowed within 24 hours. Please wait and try again later");
+      return;
     }
+    balance += 50;
+    lastTopUp = now;
+    updateBalance();
+  }
 
-    setupRace();
-  </script>
+  updateBalance();
+  setupRace();
+</script>
 
 </body>
 </html>
