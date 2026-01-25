@@ -57,15 +57,16 @@
     }
 
     .horse {
-  position: absolute;
-  left: 0;
-  top: 2px;
-  height: 46px;
-  width: 46px;
-  font-size: 34px;
-  line-height: 46px;
-  text-align: center;
-  transition: left 2s ease-out;
+      position: absolute;
+      left: 0;
+      top: 2px;
+      height: 46px;
+      width: 46px;
+      font-size: 34px;
+      line-height: 46px;
+      text-align: center;
+      transition: left 2s ease-out;
+      user-select: none;
     }
 
     .barrier {
@@ -168,7 +169,7 @@
         const horseDiv = document.createElement("div");
         horseDiv.className = "horse";
         horseDiv.id = `horse-${index}`;
-        horseDiv.textContent = horse.name.split(" ")[0];
+        horseDiv.textContent = "🐎";
 
         const barrier = document.createElement("div");
         barrier.className = "barrier";
@@ -200,7 +201,6 @@
 
       horses.forEach((_, i) => {
         const horseEl = document.getElementById(`horse-${i}`);
-        horseEl.style.transition = "left 2s ease-out";
         horseEl.style.left = i === winner ? "90%" : `${60 + Math.random() * 20}%`;
       });
 
@@ -223,4 +223,3 @@
 
 </body>
 </html>
-
