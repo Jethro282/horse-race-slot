@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <title>Horse Race Slot Game</title>
-
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -34,6 +33,12 @@
       margin: 10px 0;
     }
 
+    .payout {
+      margin-top: 6px;
+      font-weight: bold;
+      color: #ffeb3b;
+    }
+
     .track {
       width: 90%;
       margin: 20px auto;
@@ -49,6 +54,12 @@
       background: #66bb6a;
       border-radius: 6px;
       overflow: hidden;
+      transition: box-shadow 0.3s, background 0.3s;
+    }
+
+    .lane.selected {
+      background: #81c784;
+      box-shadow: 0 0 12px 4px gold;
     }
 
     .runner {
@@ -104,13 +115,35 @@
       margin-right: auto;
       text-align: left;
     }
+
+    .big-win {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.5);
+      background: gold;
+      color: #1b5e20;
+      padding: 30px 40px;
+      border-radius: 16px;
+      font-size: 32px;
+      font-weight: bold;
+      box-shadow: 0 0 30px gold;
+      animation: pop 1.2s ease-out forwards;
+      z-index: 1000;
+    }
+
+    @keyframes pop {
+      0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+      60% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+    }
   </style>
 </head>
 <body>
 
 <h1>🐎 Horse Race Slot Game</h1>
 
-<div class="balance">Account Balance: $<span id="balance">50.00</span></div>
+<div class="balance">Account Balance: $<span id="balance">0.00</span></div>
 
 <div class="controls">
   <label>Pick a horse:</label>
@@ -118,6 +151,7 @@
 
   <label>Bet Amount ($):</label>
   <input type="number" id="betAmount" min="1" step="1">
+  <div class="payout" id="payout"></div>
 </div>
 
 <button onclick="startRace()">Start Race</button>
@@ -147,6 +181,7 @@
   const oddsDiv = document.getElementById("odds");
   const horseSelect = document.getElementById("horseSelect");
   const betInput = document.getElementById("betAmount");
+  const payoutDiv = document.getElementById("payout");
   const historyDiv = document.getElementById("history");
 
   function updateBalance() {
@@ -155,7 +190,7 @@
   }
 
   function randomOdds() {
-    return Number((Math.random() * 7 + 1.5).toFixed(2));
+    return Number((Math.random() * 12 + 1.5).toFixed(2));
   }
 
   function formatOdds(o) {
@@ -165,6 +200,22 @@
   function generateHorses() {
     const shuffled = [...namePool].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, 6).map(name => ({ name, odds: randomOdds() }));
+  }
+
+  function updatePayout() {
+    const bet = Number(betInput.value);
+    const idx = Number(horseSelect.value);
+    if (!bet || !horses[idx]) {
+      payoutDiv.textContent = "";
+      return;
+    }
+    payoutDiv.textContent = `Potential payout: $${(bet * horses[idx].odds).toFixed(2)}`;
+  }
+
+  function highlightLane() {
+    document.querySelectorAll('.lane').forEach(l => l.classList.remove('selected'));
+    const idx = Number(horseSelect.value);
+    if (!isNaN(idx)) track.children[idx].classList.add('selected');
   }
 
   function setupRace() {
@@ -187,7 +238,6 @@
       const runner = document.createElement("div");
       runner.className = "runner";
       runner.id = `runner-${index}`;
-
       runner.innerHTML = `<div class='horse-name'>${horse.name}</div><div class='horse'>🐎</div>`;
 
       lane.appendChild(runner);
@@ -195,6 +245,9 @@
       lane.appendChild(Object.assign(document.createElement("div"), { className: "finish" }));
       track.appendChild(lane);
     });
+
+    updatePayout();
+    highlightLane();
   }
 
   function weightedRandomWinner() {
@@ -205,6 +258,14 @@
       if (r <= 0) return i;
     }
     return horses.length - 1;
+  }
+
+  function showBigWin(amount) {
+    const div = document.createElement("div");
+    div.className = "big-win";
+    div.textContent = `BIG WIN! $${amount.toFixed(2)}`;
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 1200);
   }
 
   function startRace() {
@@ -228,6 +289,7 @@
         winnings = bet * horses[winner].odds;
         balance += winnings;
         updateBalance();
+        if (horses[winner].odds > 10) showBigWin(winnings);
       }
 
       history.unshift({
@@ -263,6 +325,9 @@
     localStorage.setItem("lastTopUp", lastTopUp);
     updateBalance();
   }
+
+  betInput.addEventListener("input", updatePayout);
+  horseSelect.addEventListener("change", () => { updatePayout(); highlightLane(); });
 
   updateBalance();
   renderHistory();
