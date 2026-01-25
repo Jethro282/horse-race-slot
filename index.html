@@ -49,23 +49,34 @@
 
     .lane {
       position: relative;
-      height: 50px;
+      height: 60px;
       margin: 8px 0;
       background: #66bb6a;
       border-radius: 6px;
       overflow: hidden;
     }
 
-    .horse {
+    /* Container that moves */
+    .runner {
       position: absolute;
       left: 0;
-      top: 2px;
-      height: 46px;
-      width: 46px;
-      font-size: 34px;
-      line-height: 46px;
-      text-align: center;
+      top: 0;
       transition: left 2s ease-out;
+      text-align: center;
+      width: 70px;
+    }
+
+    .horse-name {
+      font-size: 10px;
+      line-height: 12px;
+      margin-bottom: -4px;
+      white-space: nowrap;
+    }
+
+    .horse {
+      font-size: 32px;
+      line-height: 36px;
+      transform: scaleX(-1); /* flip horse to face right */
       user-select: none;
     }
 
@@ -114,9 +125,6 @@
   <button onclick="startRace()">Start Race</button>
 
   <script>
-    // -----------------------------
-    // DATA
-    // -----------------------------
     const namePool = [
       "Thunderbolt", "Midnight Run", "Red Comet", "Silver Wind",
       "Iron Hoof", "Lucky Star", "Golden Mane", "Storm Chaser",
@@ -131,11 +139,8 @@
     const horseSelect = document.getElementById("horseSelect");
     const winsSpan = document.getElementById("wins");
 
-    // -----------------------------
-    // FUNCTIONS
-    // -----------------------------
     function randomOdds() {
-      return Number((Math.random() * 7 + 1.5).toFixed(1)); // 1.5x – 8.5x
+      return Number((Math.random() * 7 + 1.5).toFixed(1));
     }
 
     function generateHorses() {
@@ -153,22 +158,26 @@
       horseSelect.innerHTML = "";
 
       horses.forEach((horse, index) => {
-        // odds display
         oddsDiv.innerHTML += `${horse.name} — ${horse.odds}x<br>`;
 
-        // dropdown
         const option = document.createElement("option");
         option.value = index;
         option.textContent = `${horse.name} (${horse.odds}x)`;
         horseSelect.appendChild(option);
 
-        // track lane
         const lane = document.createElement("div");
         lane.className = "lane";
 
+        const runner = document.createElement("div");
+        runner.className = "runner";
+        runner.id = `runner-${index}`;
+
+        const nameDiv = document.createElement("div");
+        nameDiv.className = "horse-name";
+        nameDiv.textContent = horse.name;
+
         const horseDiv = document.createElement("div");
         horseDiv.className = "horse";
-        horseDiv.id = `horse-${index}`;
         horseDiv.textContent = "🐎";
 
         const barrier = document.createElement("div");
@@ -177,7 +186,9 @@
         const finish = document.createElement("div");
         finish.className = "finish";
 
-        lane.appendChild(horseDiv);
+        runner.appendChild(nameDiv);
+        runner.appendChild(horseDiv);
+        lane.appendChild(runner);
         lane.appendChild(barrier);
         lane.appendChild(finish);
         track.appendChild(lane);
@@ -185,8 +196,8 @@
     }
 
     function weightedRandomWinner() {
-      const totalWeight = horses.reduce((sum, h) => sum + 1 / h.odds, 0);
-      let r = Math.random() * totalWeight;
+      const total = horses.reduce((sum, h) => sum + 1 / h.odds, 0);
+      let r = Math.random() * total;
 
       for (let i = 0; i < horses.length; i++) {
         r -= 1 / horses[i].odds;
@@ -200,8 +211,8 @@
       const winner = weightedRandomWinner();
 
       horses.forEach((_, i) => {
-        const horseEl = document.getElementById(`horse-${i}`);
-        horseEl.style.left = i === winner ? "90%" : `${60 + Math.random() * 20}%`;
+        const runner = document.getElementById(`runner-${i}`);
+        runner.style.left = i === winner ? "90%" : `${60 + Math.random() * 20}%`;
       });
 
       setTimeout(() => {
@@ -215,9 +226,6 @@
       }, 2200);
     }
 
-    // -----------------------------
-    // INIT
-    // -----------------------------
     setupRace();
   </script>
 
