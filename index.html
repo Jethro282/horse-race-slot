@@ -49,7 +49,7 @@
 
     .lane {
       position: relative;
-      height: 60px;
+      height: 70px;
       margin: 8px 0;
       background: #66bb6a;
       border-radius: 6px;
@@ -60,23 +60,24 @@
     .runner {
       position: absolute;
       left: 0;
-      top: 0;
+      top: 6px;
       transition: left 2s ease-out;
       text-align: center;
-      width: 70px;
+      width: 120px;
     }
 
     .horse-name {
-      font-size: 10px;
-      line-height: 12px;
-      margin-bottom: -4px;
+      font-size: 14px;       /* 🔼 increased */
+      font-weight: bold;
+      line-height: 16px;
+      margin-bottom: 2px;
       white-space: nowrap;
     }
 
     .horse {
       font-size: 32px;
       line-height: 36px;
-      transform: scaleX(-1); /* flip horse to face right */
+      transform: scaleX(-1); /* face right */
       user-select: none;
     }
 
@@ -140,7 +141,11 @@
     const winsSpan = document.getElementById("wins");
 
     function randomOdds() {
-      return Number((Math.random() * 7 + 1.5).toFixed(1));
+      return Number((Math.random() * 7 + 1.5).toFixed(2)); // numeric odds
+    }
+
+    function formatOdds(odds) {
+      return `$${odds.toFixed(2)}`;
     }
 
     function generateHorses() {
@@ -158,11 +163,11 @@
       horseSelect.innerHTML = "";
 
       horses.forEach((horse, index) => {
-        oddsDiv.innerHTML += `${horse.name} — ${horse.odds}x<br>`;
+        oddsDiv.innerHTML += `${horse.name} — ${formatOdds(horse.odds)}<br>`;
 
         const option = document.createElement("option");
         option.value = index;
-        option.textContent = `${horse.name} (${horse.odds}x)`;
+        option.textContent = `${horse.name} (${formatOdds(horse.odds)})`;
         horseSelect.appendChild(option);
 
         const lane = document.createElement("div");
