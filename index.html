@@ -92,92 +92,79 @@ button {
 }
 
 .track-area {
-  position: relative;
-  width: min(95vw, 1100px);
-  height: 540px;
+  width: min(95vw, 1200px);
   margin: 22px auto;
-  background: #3fa34d;
-  border-radius: 24px;
-  overflow: hidden;
-  border: 10px solid #2e7d32;
-}
-
-.track-shape {
-  position: absolute;
-  inset: 35px;
-  border: 48px solid #8d6e63;
-  border-right-width: 78px;
-  border-radius: 50% 18px 18px 50%;
   background: #2e7d32;
+  border: 10px solid #1b3d1f;
+  border-radius: 16px;
+  padding: 18px;
+  position: relative;
 }
 
-.straight {
+.race-lane {
+  position: relative;
+  height: 76px;
+  background: #7a4f2a;
+  border-bottom: 3px dashed rgba(255,255,255,0.45);
+  overflow: hidden;
+}
+
+.race-lane:last-child {
+  border-bottom: none;
+}
+
+.race-lane.selected {
+  box-shadow: inset 0 0 0 4px gold;
+}
+
+.start-barrier {
   position: absolute;
-  right: 70px;
-  top: 100px;
-  width: 48%;
-  height: 340px;
-  background: #8d6e63;
-  border-radius: 12px;
-}
-
-.inner-straight {
-  position: absolute;
-  right: 132px;
-  top: 170px;
-  width: 35%;
-  height: 200px;
-  background: #3fa34d;
-  border-radius: 12px;
-}
-
-.finish-line {
-  position: absolute;
-  right: 90px;
-  top: 105px;
-  width: 12px;
-  height: 330px;
-  background: repeating-linear-gradient(
-    to bottom,
-    white 0 10px,
-    black 10px 20px
-  );
-  z-index: 5;
-}
-
-.barrier-box {
-  position: absolute;
-  left: 40px;
-  bottom: 42px;
-  display: flex;
-  gap: 8px;
-  z-index: 8;
-}
-
-.barrier {
-  width: 50px;
-  height: 46px;
+  left: 8px;
+  top: 8px;
+  width: 74px;
+  height: 60px;
   background: #263238;
   border: 2px solid white;
   border-radius: 6px;
-  color: gold;
+  z-index: 4;
+}
+
+.barrier-number {
+  position: absolute;
+  top: 2px;
+  left: 6px;
   font-weight: bold;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  color: gold;
+}
+
+.red-light {
+  position: absolute;
+  top: -12px;
+  left: 28px;
+  width: 18px;
+  height: 18px;
+  background: #5c0000;
+  border-radius: 50%;
+  border: 2px solid #111;
+}
+
+.red-light.flash {
+  animation: flashRed 0.35s alternate infinite;
+}
+
+@keyframes flashRed {
+  from { background: #5c0000; }
+  to { background: red; box-shadow: 0 0 16px red; }
 }
 
 .runner {
   position: absolute;
-  width: 180px;
+  left: 24px;
+  top: 9px;
+  width: 190px;
   text-align: center;
-  transform: translate(-50%, -50%);
-  z-index: 12;
-}
-
-.runner.selected .horse-name {
-  color: gold;
-  text-shadow: 0 0 8px black;
+  z-index: 5;
+  transition: left 3s ease-out;
 }
 
 .horse-name {
@@ -190,6 +177,20 @@ button {
 .horse {
   font-size: 34px;
   transform: scaleX(-1);
+}
+
+.finish-line {
+  position: absolute;
+  right: 70px;
+  top: 0;
+  width: 12px;
+  height: 100%;
+  background: repeating-linear-gradient(
+    to bottom,
+    white 0 10px,
+    black 10px 20px
+  );
+  z-index: 8;
 }
 
 .modal {
@@ -212,7 +213,8 @@ button {
 
 .race-modal-content .track-area {
   width: 94vw;
-  height: 74vh;
+  height: auto;
+  margin-top: 12px;
 }
 
 .history-box {
@@ -353,83 +355,41 @@ function weightedWinner() {
     r -= 1 / horses[i].odds;
     if (r <= 0) return i;
   }
+
   return horses.length - 1;
 }
 
-function buildTrackBase(trackEl) {
-  trackEl.innerHTML = `
-    <div class="track-shape"></div>
-    <div class="straight"></div>
-    <div class="inner-straight"></div>
-    <div class="finish-line"></div>
-    <div class="barrier-box">
-      <div class="barrier">1</div>
-      <div class="barrier">2</div>
-      <div class="barrier">3</div>
-      <div class="barrier">4</div>
-      <div class="barrier">5</div>
-      <div class="barrier">6</div>
-    </div>
-  `;
-}
+function buildTrack(trackEl) {
+  trackEl.innerHTML = "";
 
-function createRunner(horse, i, selected) {
-  const div = document.createElement("div");
-  div.className = "runner" + (selected ? " selected" : "");
-  div.id = "runner-" + i;
-  div.innerHTML = `
-    <div class="horse-name">${horse.barrier}. ${horse.name}</div>
-    <div class="horse">🐎</div>
-  `;
-  return div;
-}
-
-function getRacePosition(progress, lane, trackEl) {
-  const w = trackEl.clientWidth;
-  const h = trackEl.clientHeight;
-
-  const laneGap = lane * 22;
-
-  let x, y;
-
-  if (progress < 0.55) {
-    const t = progress / 0.55;
-    const angle = Math.PI * (1.05 - t * 0.9);
-
-    const cx = w * 0.40;
-    const cy = h * 0.52;
-    const rx = w * 0.32 - laneGap;
-    const ry = h * 0.34 - laneGap;
-
-    x = cx + rx * Math.cos(angle);
-    y = cy + ry * Math.sin(angle);
-  } else {
-    const t = (progress - 0.55) / 0.45;
-
-    x = w * 0.43 + t * (w * 0.43);
-    y = h * 0.25 + lane * 48;
-  }
-
-  return { x, y };
-}
-
-function positionRunner(el, progress, lane, trackEl) {
-  const pos = getRacePosition(progress, lane, trackEl);
-  el.style.left = pos.x + "px";
-  el.style.top = pos.y + "px";
-}
-
-function renderTrack(trackEl, progressList = null) {
-  buildTrackBase(trackEl);
+  const finish = document.createElement("div");
+  finish.className = "finish-line";
+  trackEl.appendChild(finish);
 
   const selected = Number(horseSelect.value);
 
   horses.forEach((horse, i) => {
-    const runner = createRunner(horse, i, selected === i);
-    trackEl.appendChild(runner);
+    const lane = document.createElement("div");
+    lane.className = "race-lane" + (selected === i ? " selected" : "");
 
-    const startProgress = progressList ? progressList[i] : 0;
-    positionRunner(runner, startProgress, i, trackEl);
+    const barrier = document.createElement("div");
+    barrier.className = "start-barrier";
+    barrier.innerHTML = `
+      <div class="red-light"></div>
+      <div class="barrier-number">${horse.barrier}</div>
+    `;
+
+    const runner = document.createElement("div");
+    runner.className = "runner";
+    runner.id = "runner-" + i;
+    runner.innerHTML = `
+      <div class="horse-name">${horse.barrier}. ${horse.name}</div>
+      <div class="horse">🐎</div>
+    `;
+
+    lane.appendChild(barrier);
+    lane.appendChild(runner);
+    trackEl.appendChild(lane);
   });
 }
 
@@ -451,7 +411,7 @@ function setupRace() {
   ticker.innerHTML = `<span>${tickerText}</span><span>${tickerText}</span>`;
 
   updatePayout();
-  renderTrack(previewTrack);
+  buildTrack(previewTrack);
 }
 
 function updatePayout() {
@@ -464,7 +424,28 @@ function updatePayout() {
     payout.textContent = "Potential payout: " + formatMoney(bet * horses[selected].odds);
   }
 
-  renderTrack(previewTrack);
+  buildTrack(previewTrack);
+}
+
+function loadIntoBarriers(trackEl) {
+  trackEl.querySelectorAll(".runner").forEach(runner => {
+    runner.style.transition = "left 0.8s ease-in";
+    runner.style.left = "24px";
+  });
+}
+
+function flashLights(trackEl) {
+  trackEl.querySelectorAll(".red-light").forEach(light => {
+    light.classList.add("flash");
+  });
+}
+
+function stopLights(trackEl) {
+  trackEl.querySelectorAll(".red-light").forEach(light => {
+    light.classList.remove("flash");
+    light.style.background = "green";
+    light.style.boxShadow = "0 0 16px lime";
+  });
 }
 
 function startRace() {
@@ -487,31 +468,34 @@ function startRace() {
   document.getElementById("raceSummary").textContent =
     `Selected: Barrier ${horses[selected].barrier} - ${horses[selected].name} | Bet: ${formatMoney(bet)}`;
 
-  renderTrack(raceTrack, [0,0,0,0,0,0]);
+  buildTrack(raceTrack);
+  loadIntoBarriers(raceTrack);
 
-  const duration = 6200;
-  const start = performance.now();
-  const finalProgress = horses.map((_, i) => i === winner ? 1 : 0.82 + Math.random() * 0.12);
+  setTimeout(() => {
+    flashLights(raceTrack);
+  }, 700);
 
-  function animate(now) {
-    const elapsed = now - start;
-    const t = Math.min(elapsed / duration, 1);
+  setTimeout(() => {
+    stopLights(raceTrack);
+
+    const trackWidth = raceTrack.clientWidth;
+    const finishPosition = trackWidth - 115;
 
     horses.forEach((_, i) => {
-      const eased = 1 - Math.pow(1 - t, 2);
-      const progress = eased * finalProgress[i];
       const runner = raceTrack.querySelector("#runner-" + i);
-      positionRunner(runner, progress, i, raceTrack);
+      runner.style.transition = "left 3s ease-out";
+
+      if (i === winner) {
+        runner.style.left = finishPosition + "px";
+      } else {
+        runner.style.left = (finishPosition - 180 - Math.random() * 180) + "px";
+      }
     });
 
-    if (t < 1) {
-      requestAnimationFrame(animate);
-    } else {
+    setTimeout(() => {
       finishRace(selected, winner, bet);
-    }
-  }
-
-  requestAnimationFrame(animate);
+    }, 3200);
+  }, 2200);
 }
 
 function finishRace(selected, winner, bet) {
