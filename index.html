@@ -45,20 +45,16 @@ select, input, button {
   margin: 4px;
 }
 
-button {
-  cursor: pointer;
-  font-weight: bold;
-}
+button { cursor: pointer; font-weight: bold; }
 
 .start-btn {
   font-size: 22px;
   padding: 14px 36px;
   background: gold;
   color: #1b5e20;
-  margin-top: 10px;
 }
 
-.payout {
+.payout, .race-caller {
   color: #ffeb3b;
   font-weight: bold;
   margin-top: 8px;
@@ -109,13 +105,7 @@ button {
   overflow: hidden;
 }
 
-.race-lane:last-child {
-  border-bottom: none;
-}
-
-.race-lane.selected {
-  box-shadow: inset 0 0 0 4px gold;
-}
+.race-lane.selected { box-shadow: inset 0 0 0 4px gold; }
 
 .start-barrier {
   position: absolute;
@@ -148,9 +138,7 @@ button {
   border: 2px solid #111;
 }
 
-.red-light.flash {
-  animation: flashRed 0.35s alternate infinite;
-}
+.red-light.flash { animation: flashRed 0.35s alternate infinite; }
 
 @keyframes flashRed {
   from { background: #5c0000; }
@@ -161,7 +149,7 @@ button {
   position: absolute;
   left: 24px;
   top: 9px;
-  width: 190px;
+  width: 210px;
   text-align: center;
   z-index: 5;
   transition: left 3s ease-out;
@@ -172,6 +160,20 @@ button {
   font-weight: bold;
   white-space: nowrap;
   text-shadow: 1px 1px 3px black;
+}
+
+.horse-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.silk {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid white;
 }
 
 .horse {
@@ -185,11 +187,7 @@ button {
   top: 0;
   width: 12px;
   height: 100%;
-  background: repeating-linear-gradient(
-    to bottom,
-    white 0 10px,
-    black 10px 20px
-  );
+  background: repeating-linear-gradient(to bottom, white 0 10px, black 10px 20px);
   z-index: 8;
 }
 
@@ -232,6 +230,18 @@ button {
   padding: 10px;
   border-radius: 10px;
   margin-bottom: 10px;
+}
+
+.photo-finish {
+  font-size: 34px;
+  font-weight: bold;
+  color: gold;
+  animation: pulse 0.7s alternate infinite;
+}
+
+@keyframes pulse {
+  from { opacity: 0.4; transform: scale(1); }
+  to { opacity: 1; transform: scale(1.08); }
 }
 
 .big-win {
@@ -296,6 +306,7 @@ button {
 <div class="modal" id="raceModal">
   <div class="race-modal-content">
     <h2 id="raceSummary">Live Race</h2>
+    <div class="race-caller" id="raceCaller">Waiting for race...</div>
     <div class="track-area" id="raceTrack"></div>
     <button id="closeRaceBtn" onclick="closeRace()" style="display:none;">Close</button>
   </div>
@@ -311,11 +322,14 @@ const namePool = [
   "Trump This", "Uluru", "Dawn Rider", "Gaga's Girl", "Love Rustler"
 ];
 
+const silkColours = ["red", "blue", "gold", "purple", "deeppink", "orange", "cyan", "lime"];
+
 let horses = [];
 let balance = Number(localStorage.getItem("balance")) || 50;
 let lastTopUp = Number(localStorage.getItem("lastTopUp")) || null;
 let history = JSON.parse(localStorage.getItem("history")) || [];
 let raceInProgress = false;
+let audioContext;
 
 const balanceSpan = document.getElementById("balance");
 const horseSelect = document.getElementById("horseSelect");
@@ -324,6 +338,7 @@ const payout = document.getElementById("payout");
 const ticker = document.getElementById("ticker");
 const previewTrack = document.getElementById("previewTrack");
 const raceTrack = document.getElementById("raceTrack");
+const raceCaller = document.getElementById("raceCaller");
 
 function formatMoney(n) {
   return "$" + n.toFixed(2);
@@ -332,6 +347,21 @@ function formatMoney(n) {
 function saveBalance() {
   balanceSpan.textContent = balance.toFixed(2);
   localStorage.setItem("balance", balance);
+}
+
+function sound(freq, duration, type = "sine") {
+  try {
+    audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+    gain.gain.setValueAtTime(0.08, audioContext.currentTime);
+    osc.start();
+    osc.stop(audioContext.currentTime + duration);
+  } catch {}
 }
 
 function randomOdds() {
@@ -343,7 +373,8 @@ function generateHorses() {
   horses = shuffled.slice(0, 6).map((name, i) => ({
     name,
     odds: randomOdds(),
-    barrier: i + 1
+    barrier: i + 1,
+    colour: silkColours[i % silkColours.length]
   }));
 }
 
@@ -355,7 +386,6 @@ function weightedWinner() {
     r -= 1 / horses[i].odds;
     if (r <= 0) return i;
   }
-
   return horses.length - 1;
 }
 
@@ -384,7 +414,10 @@ function buildTrack(trackEl) {
     runner.id = "runner-" + i;
     runner.innerHTML = `
       <div class="horse-name">${horse.barrier}. ${horse.name}</div>
-      <div class="horse">🐎</div>
+      <div class="horse-row">
+        <div class="silk" style="background:${horse.colour}"></div>
+        <div class="horse">🐎</div>
+      </div>
     `;
 
     lane.appendChild(barrier);
@@ -418,26 +451,15 @@ function updatePayout() {
   const bet = Number(betInput.value);
   const selected = Number(horseSelect.value);
 
-  if (!bet || !horses[selected]) {
-    payout.textContent = "";
-  } else {
-    payout.textContent = "Potential payout: " + formatMoney(bet * horses[selected].odds);
-  }
+  payout.textContent = bet && horses[selected]
+    ? "Potential payout: " + formatMoney(bet * horses[selected].odds)
+    : "";
 
   buildTrack(previewTrack);
 }
 
-function loadIntoBarriers(trackEl) {
-  trackEl.querySelectorAll(".runner").forEach(runner => {
-    runner.style.transition = "left 0.8s ease-in";
-    runner.style.left = "24px";
-  });
-}
-
 function flashLights(trackEl) {
-  trackEl.querySelectorAll(".red-light").forEach(light => {
-    light.classList.add("flash");
-  });
+  trackEl.querySelectorAll(".red-light").forEach(light => light.classList.add("flash"));
 }
 
 function stopLights(trackEl) {
@@ -446,6 +468,10 @@ function stopLights(trackEl) {
     light.style.background = "green";
     light.style.boxShadow = "0 0 16px lime";
   });
+}
+
+function callRace(text) {
+  raceCaller.textContent = text;
 }
 
 function startRace() {
@@ -461,6 +487,9 @@ function startRace() {
   saveBalance();
 
   const winner = weightedWinner();
+  const second = horses.map((_, i) => i).filter(i => i !== winner)[Math.floor(Math.random() * 5)];
+  const photoFinish = Math.random() < 0.25;
+
   raceInProgress = true;
 
   document.getElementById("raceModal").classList.add("show");
@@ -469,14 +498,20 @@ function startRace() {
     `Selected: Barrier ${horses[selected].barrier} - ${horses[selected].name} | Bet: ${formatMoney(bet)}`;
 
   buildTrack(raceTrack);
-  loadIntoBarriers(raceTrack);
+
+  callRace("Horses are loaded into the barriers...");
+  sound(300, 0.15);
 
   setTimeout(() => {
+    callRace("Red light flashing...");
     flashLights(raceTrack);
+    sound(420, 0.15);
   }, 700);
 
   setTimeout(() => {
+    callRace("They're off!");
     stopLights(raceTrack);
+    sound(700, 0.22, "square");
 
     const trackWidth = raceTrack.clientWidth;
     const finishPosition = trackWidth - 115;
@@ -487,14 +522,32 @@ function startRace() {
 
       if (i === winner) {
         runner.style.left = finishPosition + "px";
+      } else if (photoFinish && i === second) {
+        runner.style.left = (finishPosition - 18) + "px";
       } else {
-        runner.style.left = (finishPosition - 180 - Math.random() * 180) + "px";
+        runner.style.left = (finishPosition - 150 - Math.random() * 200) + "px";
       }
     });
 
     setTimeout(() => {
-      finishRace(selected, winner, bet);
-    }, 3200);
+      callRace(`${horses[winner].name} is driving hard at the line!`);
+      sound(520, 0.12);
+    }, 1400);
+
+    setTimeout(() => {
+      if (photoFinish) {
+        callRace("📸 PHOTO FINISH!");
+        raceCaller.classList.add("photo-finish");
+        sound(900, 0.25, "sawtooth");
+
+        setTimeout(() => {
+          raceCaller.classList.remove("photo-finish");
+          finishRace(selected, winner, bet);
+        }, 1600);
+      } else {
+        finishRace(selected, winner, bet);
+      }
+    }, 3300);
   }, 2200);
 }
 
@@ -506,9 +559,12 @@ function finishRace(selected, winner, bet) {
     balance += winnings;
     saveBalance();
 
-    if (horses[winner].odds > 10) {
-      showBigWin(winnings);
-    }
+    sound(1000, 0.15);
+    setTimeout(() => sound(1300, 0.2), 160);
+
+    if (horses[winner].odds > 10) showBigWin(winnings);
+  } else {
+    sound(180, 0.25, "triangle");
   }
 
   history.unshift({
@@ -520,6 +576,8 @@ function finishRace(selected, winner, bet) {
 
   history = history.slice(0, 5);
   localStorage.setItem("history", JSON.stringify(history));
+
+  callRace(`🏆 ${horses[winner].name} wins!`);
 
   document.getElementById("raceSummary").textContent =
     `Winner: Barrier ${horses[winner].barrier} - ${horses[winner].name} (${formatMoney(horses[winner].odds)}) | Your pick: ${horses[selected].name} | Winnings: ${formatMoney(winnings)}`;
@@ -555,17 +613,15 @@ function topUp() {
 function openHistory() {
   const content = document.getElementById("historyContent");
 
-  if (!history.length) {
-    content.innerHTML = "<p>No races yet.</p>";
-  } else {
-    content.innerHTML = history.map(h => `
+  content.innerHTML = history.length
+    ? history.map(h => `
       <div class="history-entry">
         🏁 Winner: ${h.winner} (${h.odds})<br>
         🎯 Picked: ${h.picked}<br>
         💰 Winnings: $${h.winnings}
       </div>
-    `).join("");
-  }
+    `).join("")
+    : "<p>No races yet.</p>";
 
   document.getElementById("historyModal").classList.add("show");
 }
