@@ -13,7 +13,6 @@ body {
   background: #1b5e20;
   color: white;
   text-align: center;
-  overflow-x: hidden;
 }
 
 h1 { margin: 14px 0 6px; }
@@ -28,15 +27,12 @@ h1 { margin: 14px 0 6px; }
   z-index: 100;
 }
 
-.balance {
-  font-weight: bold;
-  margin-bottom: 8px;
-}
+.balance { font-weight: bold; margin-bottom: 8px; }
 
 .controls {
   margin: 12px auto;
   padding: 12px;
-  max-width: 760px;
+  max-width: 780px;
   background: rgba(0,0,0,0.22);
   border-radius: 14px;
 }
@@ -79,35 +75,68 @@ button {
 }
 
 .ticker {
-  display: inline-block;
+  display: flex;
+  width: max-content;
+  animation: tickerMove 26s linear infinite;
+}
+
+.ticker span {
   white-space: nowrap;
-  animation: tickerMove 24s linear infinite;
+  padding-right: 80px;
   font-weight: bold;
 }
 
 @keyframes tickerMove {
-  from { transform: translateX(100%); }
-  to { transform: translateX(-100%); }
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
 
 .track-area {
   position: relative;
   width: min(95vw, 1100px);
-  height: 560px;
+  height: 540px;
   margin: 22px auto;
   background: #3fa34d;
-  border-radius: 50%;
-  border: 18px solid #8d6e63;
-  box-shadow: inset 0 0 0 35px #2e7d32;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 10px solid #2e7d32;
+}
+
+.track-shape {
+  position: absolute;
+  inset: 35px;
+  border: 48px solid #8d6e63;
+  border-right-width: 78px;
+  border-radius: 50% 18px 18px 50%;
+  background: #2e7d32;
+}
+
+.straight {
+  position: absolute;
+  right: 70px;
+  top: 100px;
+  width: 48%;
+  height: 340px;
+  background: #8d6e63;
+  border-radius: 12px;
+}
+
+.inner-straight {
+  position: absolute;
+  right: 132px;
+  top: 170px;
+  width: 35%;
+  height: 200px;
+  background: #3fa34d;
+  border-radius: 12px;
 }
 
 .finish-line {
   position: absolute;
-  right: 70px;
-  top: 50%;
-  width: 10px;
-  height: 120px;
-  transform: translateY(-50%);
+  right: 90px;
+  top: 105px;
+  width: 12px;
+  height: 330px;
   background: repeating-linear-gradient(
     to bottom,
     white 0 10px,
@@ -116,12 +145,34 @@ button {
   z-index: 5;
 }
 
+.barrier-box {
+  position: absolute;
+  left: 40px;
+  bottom: 42px;
+  display: flex;
+  gap: 8px;
+  z-index: 8;
+}
+
+.barrier {
+  width: 50px;
+  height: 46px;
+  background: #263238;
+  border: 2px solid white;
+  border-radius: 6px;
+  color: gold;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .runner {
   position: absolute;
-  width: 160px;
+  width: 180px;
   text-align: center;
   transform: translate(-50%, -50%);
-  transition: none;
+  z-index: 12;
 }
 
 .runner.selected .horse-name {
@@ -133,6 +184,7 @@ button {
   font-size: 14px;
   font-weight: bold;
   white-space: nowrap;
+  text-shadow: 1px 1px 3px black;
 }
 
 .horse {
@@ -152,16 +204,6 @@ button {
 
 .modal.show { display: flex; }
 
-.modal-box {
-  background: #1f5f24;
-  padding: 20px;
-  border-radius: 14px;
-  width: min(700px, 92vw);
-  max-height: 85vh;
-  overflow-y: auto;
-  text-align: left;
-}
-
 .race-modal-content {
   width: 96vw;
   height: 94vh;
@@ -169,8 +211,18 @@ button {
 }
 
 .race-modal-content .track-area {
-  width: 92vw;
-  height: 72vh;
+  width: 94vw;
+  height: 74vh;
+}
+
+.history-box {
+  background: #1f5f24;
+  padding: 20px;
+  border-radius: 14px;
+  width: min(700px, 92vw);
+  max-height: 85vh;
+  overflow-y: auto;
+  text-align: left;
 }
 
 .history-entry {
@@ -229,12 +281,10 @@ button {
   <div class="ticker" id="ticker"></div>
 </div>
 
-<div class="track-area" id="previewTrack">
-  <div class="finish-line"></div>
-</div>
+<div class="track-area" id="previewTrack"></div>
 
 <div class="modal" id="historyModal">
-  <div class="modal-box">
+  <div class="history-box">
     <h2>Race History</h2>
     <div id="historyContent"></div>
     <button onclick="closeHistory()">Close</button>
@@ -244,9 +294,7 @@ button {
 <div class="modal" id="raceModal">
   <div class="race-modal-content">
     <h2 id="raceSummary">Live Race</h2>
-    <div class="track-area" id="raceTrack">
-      <div class="finish-line"></div>
-    </div>
+    <div class="track-area" id="raceTrack"></div>
     <button id="closeRaceBtn" onclick="closeRace()" style="display:none;">Close</button>
   </div>
 </div>
@@ -290,12 +338,17 @@ function randomOdds() {
 
 function generateHorses() {
   const shuffled = [...namePool].sort(() => Math.random() - 0.5);
-  horses = shuffled.slice(0, 6).map(name => ({ name, odds: randomOdds() }));
+  horses = shuffled.slice(0, 6).map((name, i) => ({
+    name,
+    odds: randomOdds(),
+    barrier: i + 1
+  }));
 }
 
 function weightedWinner() {
   const total = horses.reduce((s, h) => s + 1 / h.odds, 0);
   let r = Math.random() * total;
+
   for (let i = 0; i < horses.length; i++) {
     r -= 1 / horses[i].odds;
     if (r <= 0) return i;
@@ -303,40 +356,80 @@ function weightedWinner() {
   return horses.length - 1;
 }
 
+function buildTrackBase(trackEl) {
+  trackEl.innerHTML = `
+    <div class="track-shape"></div>
+    <div class="straight"></div>
+    <div class="inner-straight"></div>
+    <div class="finish-line"></div>
+    <div class="barrier-box">
+      <div class="barrier">1</div>
+      <div class="barrier">2</div>
+      <div class="barrier">3</div>
+      <div class="barrier">4</div>
+      <div class="barrier">5</div>
+      <div class="barrier">6</div>
+    </div>
+  `;
+}
+
 function createRunner(horse, i, selected) {
   const div = document.createElement("div");
   div.className = "runner" + (selected ? " selected" : "");
   div.id = "runner-" + i;
-  div.innerHTML = `<div class="horse-name">${horse.name}</div><div class="horse">🐎</div>`;
+  div.innerHTML = `
+    <div class="horse-name">${horse.barrier}. ${horse.name}</div>
+    <div class="horse">🐎</div>
+  `;
   return div;
 }
 
-function positionRunner(el, progress, laneIndex, trackEl) {
+function getRacePosition(progress, lane, trackEl) {
   const w = trackEl.clientWidth;
   const h = trackEl.clientHeight;
-  const cx = w / 2;
-  const cy = h / 2;
 
-  const rx = w * (0.40 - laneIndex * 0.035);
-  const ry = h * (0.36 - laneIndex * 0.035);
+  const laneGap = lane * 22;
 
-  const angle = progress * Math.PI * 2;
-  const x = cx + rx * Math.cos(angle);
-  const y = cy + ry * Math.sin(angle);
+  let x, y;
 
-  el.style.left = x + "px";
-  el.style.top = y + "px";
+  if (progress < 0.55) {
+    const t = progress / 0.55;
+    const angle = Math.PI * (1.05 - t * 0.9);
+
+    const cx = w * 0.40;
+    const cy = h * 0.52;
+    const rx = w * 0.32 - laneGap;
+    const ry = h * 0.34 - laneGap;
+
+    x = cx + rx * Math.cos(angle);
+    y = cy + ry * Math.sin(angle);
+  } else {
+    const t = (progress - 0.55) / 0.45;
+
+    x = w * 0.43 + t * (w * 0.43);
+    y = h * 0.25 + lane * 48;
+  }
+
+  return { x, y };
+}
+
+function positionRunner(el, progress, lane, trackEl) {
+  const pos = getRacePosition(progress, lane, trackEl);
+  el.style.left = pos.x + "px";
+  el.style.top = pos.y + "px";
 }
 
 function renderTrack(trackEl, progressList = null) {
-  trackEl.querySelectorAll(".runner").forEach(r => r.remove());
+  buildTrackBase(trackEl);
 
   const selected = Number(horseSelect.value);
 
   horses.forEach((horse, i) => {
     const runner = createRunner(horse, i, selected === i);
     trackEl.appendChild(runner);
-    positionRunner(runner, progressList ? progressList[i] : 0.52, i, trackEl);
+
+    const startProgress = progressList ? progressList[i] : 0;
+    positionRunner(runner, startProgress, i, trackEl);
   });
 }
 
@@ -347,11 +440,15 @@ function setupRace() {
   horses.forEach((h, i) => {
     const opt = document.createElement("option");
     opt.value = i;
-    opt.textContent = `${h.name} (${formatMoney(h.odds)})`;
+    opt.textContent = `Barrier ${h.barrier} - ${h.name} (${formatMoney(h.odds)})`;
     horseSelect.appendChild(opt);
   });
 
-  ticker.innerHTML = horses.map(h => `🐎 ${h.name} — ${formatMoney(h.odds)}`).join(" &nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp; ");
+  const tickerText = horses
+    .map(h => `🐎 Barrier ${h.barrier}: ${h.name} — ${formatMoney(h.odds)}`)
+    .join(" &nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp; ");
+
+  ticker.innerHTML = `<span>${tickerText}</span><span>${tickerText}</span>`;
 
   updatePayout();
   renderTrack(previewTrack);
@@ -363,10 +460,10 @@ function updatePayout() {
 
   if (!bet || !horses[selected]) {
     payout.textContent = "";
-    return;
+  } else {
+    payout.textContent = "Potential payout: " + formatMoney(bet * horses[selected].odds);
   }
 
-  payout.textContent = "Potential payout: " + formatMoney(bet * horses[selected].odds);
   renderTrack(previewTrack);
 }
 
@@ -388,24 +485,21 @@ function startRace() {
   document.getElementById("raceModal").classList.add("show");
   document.getElementById("closeRaceBtn").style.display = "none";
   document.getElementById("raceSummary").textContent =
-    `Selected: ${horses[selected].name} | Bet: ${formatMoney(bet)} | Potential payout: ${formatMoney(bet * horses[selected].odds)}`;
+    `Selected: Barrier ${horses[selected].barrier} - ${horses[selected].name} | Bet: ${formatMoney(bet)}`;
 
   renderTrack(raceTrack, [0,0,0,0,0,0]);
 
-  const duration = 5200;
+  const duration = 6200;
   const start = performance.now();
+  const finalProgress = horses.map((_, i) => i === winner ? 1 : 0.82 + Math.random() * 0.12);
 
   function animate(now) {
-    const t = Math.min((now - start) / duration, 1);
+    const elapsed = now - start;
+    const t = Math.min(elapsed / duration, 1);
 
     horses.forEach((_, i) => {
-      let progress;
-      if (i === winner) {
-        progress = t;
-      } else {
-        progress = t * (0.82 + Math.random() * 0.12);
-      }
-
+      const eased = 1 - Math.pow(1 - t, 2);
+      const progress = eased * finalProgress[i];
       const runner = raceTrack.querySelector("#runner-" + i);
       positionRunner(runner, progress, i, raceTrack);
     });
@@ -434,9 +528,9 @@ function finishRace(selected, winner, bet) {
   }
 
   history.unshift({
-    winner: horses[winner].name,
+    winner: `Barrier ${horses[winner].barrier} - ${horses[winner].name}`,
     odds: formatMoney(horses[winner].odds),
-    picked: horses[selected].name,
+    picked: `Barrier ${horses[selected].barrier} - ${horses[selected].name}`,
     winnings: winnings.toFixed(2)
   });
 
@@ -444,7 +538,7 @@ function finishRace(selected, winner, bet) {
   localStorage.setItem("history", JSON.stringify(history));
 
   document.getElementById("raceSummary").textContent =
-    `Winner: ${horses[winner].name} (${formatMoney(horses[winner].odds)}) | Your pick: ${horses[selected].name} | Winnings: ${formatMoney(winnings)}`;
+    `Winner: Barrier ${horses[winner].barrier} - ${horses[winner].name} (${formatMoney(horses[winner].odds)}) | Your pick: ${horses[selected].name} | Winnings: ${formatMoney(winnings)}`;
 
   document.getElementById("closeRaceBtn").style.display = "inline-block";
   raceInProgress = false;
