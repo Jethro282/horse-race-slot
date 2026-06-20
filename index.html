@@ -152,7 +152,6 @@ button { cursor: pointer; font-weight: bold; }
   width: 210px;
   text-align: center;
   z-index: 5;
-  transition: left 3s ease-out;
 }
 
 .horse-name {
@@ -354,11 +353,14 @@ function sound(freq, duration, type = "sine") {
     audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
     const osc = audioContext.createOscillator();
     const gain = audioContext.createGain();
+
     osc.type = type;
     osc.frequency.value = freq;
     osc.connect(gain);
     gain.connect(audioContext.destination);
+
     gain.gain.setValueAtTime(0.08, audioContext.currentTime);
+
     osc.start();
     osc.stop(audioContext.currentTime + duration);
   } catch {}
@@ -370,15 +372,20 @@ function randomOdds() {
 
 function generateHorses() {
   const shuffled = [...namePool].sort(() => Math.random() - 0.5);
+
   horses = shuffled.slice(0, 6).map((name, i) => ({
     name,
     odds: randomOdds(),
     barrier: i + 1,
-    colour: silkColours[i % silkColours.length]
+    colour: silkColours[i % silkColours.length],
+    position: 0,
+    speed: 0,
+    energy: 1,
+    finishingKick: 1
   }));
 }
 
-function weightedWinner() {
+function weightedFavouriteBoost() {
   const total = horses.reduce((s, h) => s + 1 / h.odds, 0);
   let r = Math.random() * total;
 
@@ -386,6 +393,7 @@ function weightedWinner() {
     r -= 1 / horses[i].odds;
     if (r <= 0) return i;
   }
+
   return horses.length - 1;
 }
 
@@ -474,6 +482,67 @@ function callRace(text) {
   raceCaller.textContent = text;
 }
 
+function getFinishPosition() {
+  return raceTrack.clientWidth - 115;
+}
+
+function updateHorseVisuals() {
+  const finishPosition = getFinishPosition();
+  const startPosition = 24;
+  const distance = finishPosition - startPosition;
+
+  horses.forEach((horse, i) => {
+    const runner = raceTrack.querySelector("#runner-" + i);
+    if (!runner) return;
+
+    const left = startPosition + distance * (horse.position / 100);
+    runner.style.left = left + "px";
+  });
+}
+
+function getLeaderOrder() {
+  return [...horses]
+    .map((h, i) => ({ ...h, index: i }))
+    .sort((a, b) => b.position - a.position);
+}
+
+function resetRaceStats(boostedIndex) {
+  horses.forEach((horse, i) => {
+    horse.position = 0;
+
+    const oddsFactor = Math.max(0.82, 1.25 - horse.odds / 18);
+    const randomFactor = 0.85 + Math.random() * 0.35;
+    const boost = i === boostedIndex ? 1.12 : 1;
+
+    horse.speed = oddsFactor * randomFactor * boost;
+    horse.energy = 0.95 + Math.random() * 0.25;
+    horse.finishingKick = 0.9 + Math.random() * 0.35;
+  });
+}
+
+function liveRaceCommentary(elapsed, lastLeaderIndex) {
+  const order = getLeaderOrder();
+  const leader = order[0];
+  const second = order[1];
+
+  if (leader.index !== lastLeaderIndex) {
+    callRace(`${leader.name} takes the lead from ${second.name}!`);
+    sound(520, 0.1);
+    return leader.index;
+  }
+
+  const lines = [
+    `${leader.name} leads, but ${second.name} is right there!`,
+    `${second.name} is starting to make a move!`,
+    `${leader.name} is travelling strongly!`,
+    `${order[2].name} is trying to close the gap!`,
+    `${order[5].name} needs to find something late!`
+  ];
+
+  callRace(lines[Math.floor(Math.random() * lines.length)]);
+  return lastLeaderIndex;
+}
+
 function startRace() {
   if (raceInProgress) return;
 
@@ -486,9 +555,7 @@ function startRace() {
   balance -= bet;
   saveBalance();
 
-  const winner = weightedWinner();
-  const second = horses.map((_, i) => i).filter(i => i !== winner)[Math.floor(Math.random() * 5)];
-  const photoFinish = Math.random() < 0.25;
+  const boostedIndex = weightedFavouriteBoost();
 
   raceInProgress = true;
 
@@ -498,6 +565,8 @@ function startRace() {
     `Selected: Barrier ${horses[selected].barrier} - ${horses[selected].name} | Bet: ${formatMoney(bet)}`;
 
   buildTrack(raceTrack);
+  resetRaceStats(boostedIndex);
+  updateHorseVisuals();
 
   callRace("Horses are loaded into the barriers...");
   sound(300, 0.15);
@@ -509,46 +578,110 @@ function startRace() {
   }, 700);
 
   setTimeout(() => {
-    callRace("They're off!");
-    stopLights(raceTrack);
-    sound(700, 0.22, "square");
+    callRace("3...");
+    sound(400, 0.12);
 
-    const trackWidth = raceTrack.clientWidth;
-    const finishPosition = trackWidth - 115;
+    setTimeout(() => {
+      callRace("2...");
+      sound(400, 0.12);
+    }, 900);
 
-    horses.forEach((_, i) => {
-      const runner = raceTrack.querySelector("#runner-" + i);
-      runner.style.transition = "left 3s ease-out";
+    setTimeout(() => {
+      callRace("1...");
+      sound(400, 0.12);
+    }, 1800);
 
-      if (i === winner) {
-        runner.style.left = finishPosition + "px";
-      } else if (photoFinish && i === second) {
-        runner.style.left = (finishPosition - 18) + "px";
+    setTimeout(() => {
+      callRace("They're off!");
+      stopLights(raceTrack);
+      sound(700, 0.22, "square");
+      runLiveRace(selected, bet);
+    }, 2700);
+
+  }, 2200);
+}
+
+function runLiveRace(selected, bet) {
+  let lastTime = performance.now();
+  let startTime = lastTime;
+  let lastCommentaryTime = 0;
+  let lastLeaderIndex = -1;
+  let winnerIndex = null;
+
+  function frame(now) {
+    const dt = (now - lastTime) / 1000;
+    const elapsed = now - startTime;
+    lastTime = now;
+
+    horses.forEach((horse, i) => {
+      const raceProgress = Math.min(horse.position / 100, 1);
+
+      let phaseBoost = 1;
+
+      if (raceProgress < 0.25) {
+        phaseBoost = 1.05 + Math.random() * 0.08;
+      } else if (raceProgress < 0.75) {
+        phaseBoost = horse.energy;
       } else {
-        runner.style.left = (finishPosition - 150 - Math.random() * 200) + "px";
+        phaseBoost = horse.finishingKick;
       }
+
+      const randomness = 0.85 + Math.random() * 0.30;
+      const pace = horse.speed * phaseBoost * randomness;
+
+      horse.position += pace * dt * 8.8;
+
+      if (horse.position > 100) horse.position = 100;
     });
 
-    setTimeout(() => {
-      callRace(`${horses[winner].name} is driving hard at the line!`);
-      sound(520, 0.12);
-    }, 1400);
+    updateHorseVisuals();
+
+    if (elapsed - lastCommentaryTime > 1700) {
+      lastLeaderIndex = liveRaceCommentary(elapsed, lastLeaderIndex);
+      lastCommentaryTime = elapsed;
+    }
+
+    const order = getLeaderOrder();
+
+    if (order[0].position >= 100 && elapsed > 7000) {
+      winnerIndex = order[0].index;
+      finishLiveRace(selected, winnerIndex, bet);
+      return;
+    }
+
+    if (elapsed > 13000) {
+      winnerIndex = order[0].index;
+      horses[winnerIndex].position = 100;
+      updateHorseVisuals();
+      finishLiveRace(selected, winnerIndex, bet);
+      return;
+    }
+
+    requestAnimationFrame(frame);
+  }
+
+  requestAnimationFrame(frame);
+}
+
+function finishLiveRace(selected, winner, bet) {
+  const order = getLeaderOrder();
+  const first = order[0];
+  const second = order[1];
+  const photoFinish = Math.abs(first.position - second.position) < 1.5;
+
+  if (photoFinish) {
+    callRace("📸 PHOTO FINISH!");
+    raceCaller.classList.add("photo-finish");
+    sound(900, 0.25, "sawtooth");
 
     setTimeout(() => {
-      if (photoFinish) {
-        callRace("📸 PHOTO FINISH!");
-        raceCaller.classList.add("photo-finish");
-        sound(900, 0.25, "sawtooth");
-
-        setTimeout(() => {
-          raceCaller.classList.remove("photo-finish");
-          finishRace(selected, winner, bet);
-        }, 1600);
-      } else {
-        finishRace(selected, winner, bet);
-      }
-    }, 3300);
-  }, 2200);
+      raceCaller.classList.remove("photo-finish");
+      finishRace(selected, winner, bet);
+    }, 1600);
+  } else {
+    callRace(`${horses[winner].name} is driving hard at the line!`);
+    setTimeout(() => finishRace(selected, winner, bet), 700);
+  }
 }
 
 function finishRace(selected, winner, bet) {
@@ -562,7 +695,9 @@ function finishRace(selected, winner, bet) {
     sound(1000, 0.15);
     setTimeout(() => sound(1300, 0.2), 160);
 
-    if (horses[winner].odds > 10) showBigWin(winnings);
+    if (horses[winner].odds > 10) {
+      showBigWin(winnings);
+    }
   } else {
     sound(180, 0.25, "triangle");
   }
