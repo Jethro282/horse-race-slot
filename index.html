@@ -1,359 +1,512 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Horse Race Slot Game</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #1b5e20;
-      color: white;
-      text-align: center;
-      margin: 0;
-      padding: 20px;
-    }
+<meta charset="UTF-8">
+<title>Horse Race Slot Game</title>
 
-    h1 { margin-bottom: 10px; }
+<style>
+* { box-sizing: border-box; }
 
-    .controls { margin: 15px 0; }
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #1b5e20;
+  color: white;
+  text-align: center;
+  overflow-x: hidden;
+}
 
-    select, button, input {
-      padding: 8px 12px;
-      font-size: 16px;
-      border-radius: 6px;
-      border: none;
-      margin: 4px;
-    }
+h1 { margin: 14px 0 6px; }
 
-    button { cursor: pointer; }
+.account-panel {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  background: rgba(0,0,0,0.35);
+  padding: 12px;
+  border-radius: 12px;
+  z-index: 100;
+}
 
-    .balance {
-      font-size: 18px;
-      font-weight: bold;
-      margin: 10px 0;
-    }
+.balance {
+  font-weight: bold;
+  margin-bottom: 8px;
+}
 
-    .payout {
-      margin-top: 6px;
-      font-weight: bold;
-      color: #ffeb3b;
-    }
+.controls {
+  margin: 12px auto;
+  padding: 12px;
+  max-width: 760px;
+  background: rgba(0,0,0,0.22);
+  border-radius: 14px;
+}
 
-    .track {
-      width: 90%;
-      margin: 20px auto;
-      background: #2e7d32;
-      padding: 10px;
-      border-radius: 12px;
-    }
+select, input, button {
+  padding: 9px 12px;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  margin: 4px;
+}
 
-    .lane {
-      position: relative;
-      height: 70px;
-      margin: 8px 0;
-      background: #66bb6a;
-      border-radius: 6px;
-      overflow: hidden;
-      transition: box-shadow 0.3s, background 0.3s;
-    }
+button {
+  cursor: pointer;
+  font-weight: bold;
+}
 
-    .lane.selected {
-      background: #81c784;
-      box-shadow: 0 0 12px 4px gold;
-    }
+.start-btn {
+  font-size: 22px;
+  padding: 14px 36px;
+  background: gold;
+  color: #1b5e20;
+  margin-top: 10px;
+}
 
-    .runner {
-      position: absolute;
-      left: 0;
-      top: 6px;
-      transition: left 2s ease-out;
-      text-align: center;
-      width: 140px;
-    }
+.payout {
+  color: #ffeb3b;
+  font-weight: bold;
+  margin-top: 8px;
+}
 
-    .horse-name {
-      font-size: 14px;
-      font-weight: bold;
-      margin-bottom: 2px;
-      white-space: nowrap;
-    }
+.ticker-wrap {
+  width: 100%;
+  overflow: hidden;
+  background: #0b3d13;
+  border-top: 2px solid gold;
+  border-bottom: 2px solid gold;
+  padding: 8px 0;
+  margin-top: 12px;
+}
 
-    .horse {
-      font-size: 32px;
-      transform: scaleX(-1);
-      user-select: none;
-    }
+.ticker {
+  display: inline-block;
+  white-space: nowrap;
+  animation: tickerMove 24s linear infinite;
+  font-weight: bold;
+}
 
-    .barrier {
-      position: absolute;
-      right: 40%;
-      top: 0;
-      width: 6px;
-      height: 100%;
-      background: #3e2723;
-    }
+@keyframes tickerMove {
+  from { transform: translateX(100%); }
+  to { transform: translateX(-100%); }
+}
 
-    .finish {
-      position: absolute;
-      right: 5px;
-      top: 0;
-      width: 6px;
-      height: 100%;
-      background: white;
-    }
+.track-area {
+  position: relative;
+  width: min(95vw, 1100px);
+  height: 560px;
+  margin: 22px auto;
+  background: #3fa34d;
+  border-radius: 50%;
+  border: 18px solid #8d6e63;
+  box-shadow: inset 0 0 0 35px #2e7d32;
+}
 
-    #odds, #history {
-      margin-top: 10px;
-    }
+.finish-line {
+  position: absolute;
+  right: 70px;
+  top: 50%;
+  width: 10px;
+  height: 120px;
+  transform: translateY(-50%);
+  background: repeating-linear-gradient(
+    to bottom,
+    white 0 10px,
+    black 10px 20px
+  );
+  z-index: 5;
+}
 
-    #history {
-      background: rgba(0,0,0,0.2);
-      padding: 10px;
-      border-radius: 8px;
-      max-width: 500px;
-      margin-left: auto;
-      margin-right: auto;
-      text-align: left;
-    }
+.runner {
+  position: absolute;
+  width: 160px;
+  text-align: center;
+  transform: translate(-50%, -50%);
+  transition: none;
+}
 
-    .big-win {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) scale(0.5);
-      background: gold;
-      color: #1b5e20;
-      padding: 30px 40px;
-      border-radius: 16px;
-      font-size: 32px;
-      font-weight: bold;
-      box-shadow: 0 0 30px gold;
-      animation: pop 1.2s ease-out forwards;
-      z-index: 1000;
-    }
+.runner.selected .horse-name {
+  color: gold;
+  text-shadow: 0 0 8px black;
+}
 
-    @keyframes pop {
-      0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
-      60% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
-      100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
-    }
-  </style>
+.horse-name {
+  font-size: 14px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.horse {
+  font-size: 34px;
+  transform: scaleX(-1);
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.82);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal.show { display: flex; }
+
+.modal-box {
+  background: #1f5f24;
+  padding: 20px;
+  border-radius: 14px;
+  width: min(700px, 92vw);
+  max-height: 85vh;
+  overflow-y: auto;
+  text-align: left;
+}
+
+.race-modal-content {
+  width: 96vw;
+  height: 94vh;
+  text-align: center;
+}
+
+.race-modal-content .track-area {
+  width: 92vw;
+  height: 72vh;
+}
+
+.history-entry {
+  background: rgba(255,255,255,0.1);
+  padding: 10px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.big-win {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: gold;
+  color: #1b5e20;
+  padding: 30px 45px;
+  border-radius: 18px;
+  font-size: 34px;
+  font-weight: bold;
+  z-index: 2000;
+  animation: pop 1.4s ease-out forwards;
+}
+
+@keyframes pop {
+  0% { transform: translate(-50%, -50%) scale(.4); opacity: 0; }
+  50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+}
+</style>
 </head>
+
 <body>
 
 <h1>🐎 Horse Race Slot Game</h1>
 
-<div class="balance">Account Balance: $<span id="balance">0.00</span></div>
+<div class="account-panel">
+  <div class="balance">Balance: $<span id="balance">50.00</span></div>
+  <button onclick="topUp()">Free $50 Top Up</button>
+</div>
 
 <div class="controls">
   <label>Pick a horse:</label>
-  <select id="horseSelect"></select><br>
+  <select id="horseSelect"></select>
 
   <label>Bet Amount ($):</label>
   <input type="number" id="betAmount" min="1" step="1">
+
   <div class="payout" id="payout"></div>
+
+  <button class="start-btn" onclick="startRace()">START RACE</button>
+  <button onclick="openHistory()">Race History (Last 5)</button>
 </div>
 
-<button onclick="startRace()">Start Race</button>
-<button onclick="topUp()">Free $50 Top Up</button>
+<div class="ticker-wrap">
+  <div class="ticker" id="ticker"></div>
+</div>
 
-<div id="odds"></div>
+<div class="track-area" id="previewTrack">
+  <div class="finish-line"></div>
+</div>
 
-<div class="track" id="track"></div>
+<div class="modal" id="historyModal">
+  <div class="modal-box">
+    <h2>Race History</h2>
+    <div id="historyContent"></div>
+    <button onclick="closeHistory()">Close</button>
+  </div>
+</div>
 
-<h3>Race History (Last 5)</h3>
-<div id="history"></div>
+<div class="modal" id="raceModal">
+  <div class="race-modal-content">
+    <h2 id="raceSummary">Live Race</h2>
+    <div class="track-area" id="raceTrack">
+      <div class="finish-line"></div>
+    </div>
+    <button id="closeRaceBtn" onclick="closeRace()" style="display:none;">Close</button>
+  </div>
+</div>
 
 <script>
-  const namePool = [
-    "Champagne Calling",
-    "La Veuve",
-    "Arabian Legacy",
-    "Aspen Colorado",
-    "Aurora Sunset",
-    "Cadbury Castle",
-    "Chequered Love",
-    "Down The Barrel",
-    "Extra Brut",
-    "Merlin's Melody",
-    "Mr No Nay",
-    "My Lancelot",
-    "My Matterhorn",
-    "Naval Officer",
-    "Nightsphere",
-    "Ready By Design",
-    "Sassy Rebel",
-    "So Poysed",
-    "Tango and Cash",
-    "Tough Judge",
-    "Trump This",
-    "Uluru",
-    "Dawn Rider",
-    "Gaga's Girl",
-    "Love Rustler"
-  ];
+const namePool = [
+  "Champagne Calling", "La Veuve", "Arabian Legacy", "Aspen Colorado",
+  "Aurora Sunset", "Cadbury Castle", "Chequered Love", "Down The Barrel",
+  "Extra Brut", "Merlin's Melody", "Mr No Nay", "My Lancelot",
+  "My Matterhorn", "Naval Officer", "Nightsphere", "Ready By Design",
+  "Sassy Rebel", "So Poysed", "Tango and Cash", "Tough Judge",
+  "Trump This", "Uluru", "Dawn Rider", "Gaga's Girl", "Love Rustler"
+];
 
-  let horses = [];
-  let balance = Number(localStorage.getItem("balance")) || 50;
-  let lastTopUp = Number(localStorage.getItem("lastTopUp")) || null;
-  let history = JSON.parse(localStorage.getItem("history")) || [];
+let horses = [];
+let balance = Number(localStorage.getItem("balance")) || 50;
+let lastTopUp = Number(localStorage.getItem("lastTopUp")) || null;
+let history = JSON.parse(localStorage.getItem("history")) || [];
+let raceInProgress = false;
 
-  const balanceSpan = document.getElementById("balance");
-  const track = document.getElementById("track");
-  const oddsDiv = document.getElementById("odds");
-  const horseSelect = document.getElementById("horseSelect");
-  const betInput = document.getElementById("betAmount");
-  const payoutDiv = document.getElementById("payout");
-  const historyDiv = document.getElementById("history");
+const balanceSpan = document.getElementById("balance");
+const horseSelect = document.getElementById("horseSelect");
+const betInput = document.getElementById("betAmount");
+const payout = document.getElementById("payout");
+const ticker = document.getElementById("ticker");
+const previewTrack = document.getElementById("previewTrack");
+const raceTrack = document.getElementById("raceTrack");
 
-  function updateBalance() {
-    balanceSpan.textContent = balance.toFixed(2);
-    localStorage.setItem("balance", balance);
+function formatMoney(n) {
+  return "$" + n.toFixed(2);
+}
+
+function saveBalance() {
+  balanceSpan.textContent = balance.toFixed(2);
+  localStorage.setItem("balance", balance);
+}
+
+function randomOdds() {
+  return Number((Math.random() * 12 + 1.5).toFixed(2));
+}
+
+function generateHorses() {
+  const shuffled = [...namePool].sort(() => Math.random() - 0.5);
+  horses = shuffled.slice(0, 6).map(name => ({ name, odds: randomOdds() }));
+}
+
+function weightedWinner() {
+  const total = horses.reduce((s, h) => s + 1 / h.odds, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < horses.length; i++) {
+    r -= 1 / horses[i].odds;
+    if (r <= 0) return i;
+  }
+  return horses.length - 1;
+}
+
+function createRunner(horse, i, selected) {
+  const div = document.createElement("div");
+  div.className = "runner" + (selected ? " selected" : "");
+  div.id = "runner-" + i;
+  div.innerHTML = `<div class="horse-name">${horse.name}</div><div class="horse">🐎</div>`;
+  return div;
+}
+
+function positionRunner(el, progress, laneIndex, trackEl) {
+  const w = trackEl.clientWidth;
+  const h = trackEl.clientHeight;
+  const cx = w / 2;
+  const cy = h / 2;
+
+  const rx = w * (0.40 - laneIndex * 0.035);
+  const ry = h * (0.36 - laneIndex * 0.035);
+
+  const angle = progress * Math.PI * 2;
+  const x = cx + rx * Math.cos(angle);
+  const y = cy + ry * Math.sin(angle);
+
+  el.style.left = x + "px";
+  el.style.top = y + "px";
+}
+
+function renderTrack(trackEl, progressList = null) {
+  trackEl.querySelectorAll(".runner").forEach(r => r.remove());
+
+  const selected = Number(horseSelect.value);
+
+  horses.forEach((horse, i) => {
+    const runner = createRunner(horse, i, selected === i);
+    trackEl.appendChild(runner);
+    positionRunner(runner, progressList ? progressList[i] : 0.52, i, trackEl);
+  });
+}
+
+function setupRace() {
+  generateHorses();
+
+  horseSelect.innerHTML = "";
+  horses.forEach((h, i) => {
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.textContent = `${h.name} (${formatMoney(h.odds)})`;
+    horseSelect.appendChild(opt);
+  });
+
+  ticker.innerHTML = horses.map(h => `🐎 ${h.name} — ${formatMoney(h.odds)}`).join(" &nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp; ");
+
+  updatePayout();
+  renderTrack(previewTrack);
+}
+
+function updatePayout() {
+  const bet = Number(betInput.value);
+  const selected = Number(horseSelect.value);
+
+  if (!bet || !horses[selected]) {
+    payout.textContent = "";
+    return;
   }
 
-  function randomOdds() {
-    return Number((Math.random() * 12 + 1.5).toFixed(2));
-  }
+  payout.textContent = "Potential payout: " + formatMoney(bet * horses[selected].odds);
+  renderTrack(previewTrack);
+}
 
-  function formatOdds(o) {
-    return `$${o.toFixed(2)}`;
-  }
+function startRace() {
+  if (raceInProgress) return;
 
-  function generateHorses() {
-    const shuffled = [...namePool].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, 6).map(name => ({ name, odds: randomOdds() }));
-  }
+  const bet = Number(betInput.value);
+  const selected = Number(horseSelect.value);
 
-  function updatePayout() {
-    const bet = Number(betInput.value);
-    const idx = Number(horseSelect.value);
-    if (!bet || !horses[idx]) {
-      payoutDiv.textContent = "";
-      return;
-    }
-    payoutDiv.textContent = `Potential payout: $${(bet * horses[idx].odds).toFixed(2)}`;
-  }
+  if (!bet || bet <= 0) return alert("Enter a valid bet amount");
+  if (bet > balance) return alert("Insufficient balance");
 
-  function highlightLane() {
-    document.querySelectorAll('.lane').forEach(l => l.classList.remove('selected'));
-    const idx = Number(horseSelect.value);
-    if (!isNaN(idx)) track.children[idx].classList.add('selected');
-  }
+  balance -= bet;
+  saveBalance();
 
-  function setupRace() {
-    horses = generateHorses();
-    track.innerHTML = "";
-    oddsDiv.innerHTML = "<h3>Horses & Odds</h3>";
-    horseSelect.innerHTML = "";
+  const winner = weightedWinner();
+  raceInProgress = true;
 
-    horses.forEach((horse, index) => {
-      oddsDiv.innerHTML += `${horse.name} — ${formatOdds(horse.odds)}<br>`;
+  document.getElementById("raceModal").classList.add("show");
+  document.getElementById("closeRaceBtn").style.display = "none";
+  document.getElementById("raceSummary").textContent =
+    `Selected: ${horses[selected].name} | Bet: ${formatMoney(bet)} | Potential payout: ${formatMoney(bet * horses[selected].odds)}`;
 
-      const opt = document.createElement("option");
-      opt.value = index;
-      opt.textContent = `${horse.name} (${formatOdds(horse.odds)})`;
-      horseSelect.appendChild(opt);
+  renderTrack(raceTrack, [0,0,0,0,0,0]);
 
-      const lane = document.createElement("div");
-      lane.className = "lane";
+  const duration = 5200;
+  const start = performance.now();
 
-      const runner = document.createElement("div");
-      runner.className = "runner";
-      runner.id = `runner-${index}`;
-      runner.innerHTML = `<div class='horse-name'>${horse.name}</div><div class='horse'>🐎</div>`;
-
-      lane.appendChild(runner);
-      lane.appendChild(Object.assign(document.createElement("div"), { className: "barrier" }));
-      lane.appendChild(Object.assign(document.createElement("div"), { className: "finish" }));
-      track.appendChild(lane);
-    });
-
-    updatePayout();
-    highlightLane();
-  }
-
-  function weightedRandomWinner() {
-    const total = horses.reduce((s, h) => s + 1 / h.odds, 0);
-    let r = Math.random() * total;
-    for (let i = 0; i < horses.length; i++) {
-      r -= 1 / horses[i].odds;
-      if (r <= 0) return i;
-    }
-    return horses.length - 1;
-  }
-
-  function showBigWin(amount) {
-    const div = document.createElement("div");
-    div.className = "big-win";
-    div.textContent = `BIG WIN! $${amount.toFixed(2)}`;
-    document.body.appendChild(div);
-    setTimeout(() => div.remove(), 1200);
-  }
-
-  function startRace() {
-    const bet = Number(betInput.value);
-    if (!bet || bet <= 0) return alert("Enter a valid bet amount");
-    if (bet > balance) return alert("Insufficient balance");
-
-    balance -= bet;
-    updateBalance();
-
-    const selected = Number(horseSelect.value);
-    const winner = weightedRandomWinner();
+  function animate(now) {
+    const t = Math.min((now - start) / duration, 1);
 
     horses.forEach((_, i) => {
-      document.getElementById(`runner-${i}`).style.left = i === winner ? "90%" : `${60 + Math.random() * 20}%`;
-    });
-
-    setTimeout(() => {
-      let winnings = 0;
-      if (selected === winner) {
-        winnings = bet * horses[winner].odds;
-        balance += winnings;
-        updateBalance();
-        if (horses[winner].odds > 10) showBigWin(winnings);
+      let progress;
+      if (i === winner) {
+        progress = t;
+      } else {
+        progress = t * (0.82 + Math.random() * 0.12);
       }
 
-      history.unshift({
-        winner: horses[winner].name,
-        odds: formatOdds(horses[winner].odds),
-        picked: horses[selected].name,
-        winnings: winnings.toFixed(2)
-      });
+      const runner = raceTrack.querySelector("#runner-" + i);
+      positionRunner(runner, progress, i, raceTrack);
+    });
 
-      history = history.slice(0, 5);
-      localStorage.setItem("history", JSON.stringify(history));
-      renderHistory();
-      setupRace();
-    }, 2200);
-  }
-
-  function renderHistory() {
-    historyDiv.innerHTML = history.map(h =>
-      `🏁 Winner: ${h.winner} (${h.odds})<br>` +
-      `🎯 Picked: ${h.picked}<br>` +
-      `💰 Winnings: $${h.winnings}<hr>`
-    ).join("");
-  }
-
-  function topUp() {
-    const now = Date.now();
-    if (lastTopUp && now - lastTopUp < 86400000) {
-      alert("Only 1 free top is allowed within 24 hours. Please wait and try again later");
-      return;
+    if (t < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      finishRace(selected, winner, bet);
     }
-    balance += 50;
-    lastTopUp = now;
-    localStorage.setItem("lastTopUp", lastTopUp);
-    updateBalance();
   }
 
-  betInput.addEventListener("input", updatePayout);
-  horseSelect.addEventListener("change", () => { updatePayout(); highlightLane(); });
+  requestAnimationFrame(animate);
+}
 
-  updateBalance();
-  renderHistory();
+function finishRace(selected, winner, bet) {
+  let winnings = 0;
+
+  if (selected === winner) {
+    winnings = bet * horses[winner].odds;
+    balance += winnings;
+    saveBalance();
+
+    if (horses[winner].odds > 10) {
+      showBigWin(winnings);
+    }
+  }
+
+  history.unshift({
+    winner: horses[winner].name,
+    odds: formatMoney(horses[winner].odds),
+    picked: horses[selected].name,
+    winnings: winnings.toFixed(2)
+  });
+
+  history = history.slice(0, 5);
+  localStorage.setItem("history", JSON.stringify(history));
+
+  document.getElementById("raceSummary").textContent =
+    `Winner: ${horses[winner].name} (${formatMoney(horses[winner].odds)}) | Your pick: ${horses[selected].name} | Winnings: ${formatMoney(winnings)}`;
+
+  document.getElementById("closeRaceBtn").style.display = "inline-block";
+  raceInProgress = false;
+
   setupRace();
+}
+
+function showBigWin(amount) {
+  const div = document.createElement("div");
+  div.className = "big-win";
+  div.textContent = `BIG WIN! ${formatMoney(amount)}`;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 1400);
+}
+
+function topUp() {
+  const now = Date.now();
+
+  if (lastTopUp && now - lastTopUp < 86400000) {
+    alert("Only 1 free top is allowed within 24 hours. Please wait and try again later");
+    return;
+  }
+
+  balance += 50;
+  lastTopUp = now;
+  localStorage.setItem("lastTopUp", lastTopUp);
+  saveBalance();
+}
+
+function openHistory() {
+  const content = document.getElementById("historyContent");
+
+  if (!history.length) {
+    content.innerHTML = "<p>No races yet.</p>";
+  } else {
+    content.innerHTML = history.map(h => `
+      <div class="history-entry">
+        🏁 Winner: ${h.winner} (${h.odds})<br>
+        🎯 Picked: ${h.picked}<br>
+        💰 Winnings: $${h.winnings}
+      </div>
+    `).join("");
+  }
+
+  document.getElementById("historyModal").classList.add("show");
+}
+
+function closeHistory() {
+  document.getElementById("historyModal").classList.remove("show");
+}
+
+function closeRace() {
+  if (!raceInProgress) {
+    document.getElementById("raceModal").classList.remove("show");
+  }
+}
+
+horseSelect.addEventListener("change", updatePayout);
+betInput.addEventListener("input", updatePayout);
+
+saveBalance();
+setupRace();
 </script>
 
 </body>
