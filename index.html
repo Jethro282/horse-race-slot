@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Horse Race Slot Game - Version 3</title>
+<title>Horse Race Slot Game - Version 4</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -315,12 +315,49 @@ button {
     grid-template-columns: 1fr;
   }
 }
+
+/* Version 4 additions — all original V3 styles remain unchanged */
+.mode-switch { margin: 10px auto 18px; display:flex; gap:12px; justify-content:center; align-items:center; flex-wrap:wrap; }
+.mode-switch label { font-weight:bold; }
+.mode-switch select { background:#fff; color:#173b1c; min-width:220px; }
+#racedayMode { display:none; padding:0 14px 28px; max-width:1250px; margin:auto; }
+.rd-card { background:rgba(0,0,0,.32); border-radius:14px; padding:16px; margin:12px auto; text-align:left; }
+.rd-card h2,.rd-card h3 { color:gold; margin:0 0 12px; }
+.rd-row { display:flex; gap:12px; align-items:end; flex-wrap:wrap; margin-bottom:10px; }
+.rd-field { display:flex; flex-direction:column; gap:4px; flex:1 1 160px; }
+.rd-field label { font-size:13px; font-weight:bold; }
+.rd-field input,.rd-field select { width:100%; margin:0; min-width:0; }
+.rd-entry { display:grid; grid-template-columns: minmax(140px,3fr) minmax(90px,1fr) minmax(90px,1fr) 42px; gap:8px; align-items:center; margin-bottom:8px; }
+.rd-entry input { width:100%; margin:0; min-width:0; }
+.rd-entry button { margin:0; background:#ffd7d7; color:#531515; height:41px; padding:6px; }
+.rd-head { display:grid; grid-template-columns:minmax(140px,3fr) minmax(90px,1fr) minmax(90px,1fr) 42px; gap:8px; text-align:left; font-size:13px; font-weight:bold; margin-bottom:6px; }
+.rd-btn { background:#f4d03f; color:#173b1c; padding:11px 18px; }
+.rd-btn.secondary { background:#f0f0f0; color:#173b1c; }
+.rd-btn:disabled { opacity:.5; cursor:not-allowed; }
+.rd-note { background:#143f1d; border-left:4px solid gold; padding:12px; border-radius:5px; font-size:14px; line-height:1.5; }
+.rd-status { color:#ffeb3b; font-size:19px; font-weight:bold; min-height:27px; text-align:center; margin:12px 0; }
+.rd-track-scroll { overflow-x:auto; border-radius:12px; }
+.rd-track { position:relative; min-width:650px; background:#2e7d32; border:8px solid #173b1c; border-radius:12px; padding:8px 12px; }
+.rd-lane { position:relative; height:48px; background:#79512d; border-bottom:2px dashed #ffffff80; overflow:hidden; }
+.rd-lane:last-child { border-bottom:none; }
+.rd-lane:nth-child(even) { background:#865b33; }
+.rd-gate { position:absolute; top:6px; left:4px; height:35px; width:48px; background:#263238; border:1px solid white; border-radius:4px; color:gold; font-weight:bold; padding-top:8px; z-index:2; }
+.rd-runner { position:absolute; top:3px; left:58px; width:155px; height:42px; display:flex; align-items:center; gap:4px; z-index:4; will-change:transform; }
+.rd-horse { font-size:27px; transform:scaleX(-1); flex:none; }
+.rd-runner-name { font-size:11px; line-height:1.15; font-weight:bold; text-align:left; overflow:hidden; max-height:29px; text-shadow:1px 1px #222; overflow-wrap:anywhere; }
+.rd-finish { position:absolute; top:8px; bottom:8px; right:32px; width:10px; z-index:3; background:repeating-linear-gradient(to bottom,#fff 0 8px,#000 8px 16px); }
+.rd-results { text-align:center; font-weight:bold; font-size:20px; color:gold; padding:12px; }
+.rd-muted { opacity:.85; font-size:13px; }
+@media(max-width:600px) { .rd-entry,.rd-head { grid-template-columns:minmax(90px,2fr) minmax(65px,1fr) minmax(65px,1fr) 34px; gap:4px; } .rd-entry input { padding:8px 5px; font-size:13px; } .rd-entry button { padding:3px; } .rd-card { padding:10px; } }
+
 </style>
 </head>
 
 <body>
 
 <h1>🐎 Horse Race Slot Game</h1>
+<div class="mode-switch"><label for="raceMode">Choose your race:</label><select id="raceMode" aria-label="Race mode"><option value="joffa">🏇 Joffa's Horses</option><option value="raceday">🏆 Raceday</option></select></div>
+<div id="joffaMode">
 
 <div class="layout">
 
@@ -406,6 +443,33 @@ button {
   </div>
 </div>
 
+</div><!-- End Joffa mode: original Version 3 content above -->
+<section id="racedayMode" aria-label="Raceday custom simulator">
+  <div class="rd-card">
+    <h2>🏆 Raceday — Build Your Own Race</h2>
+    <div class="rd-row">
+      <div class="rd-field"><label for="rdTrack">Track condition</label><select id="rdTrack"><option>Firm</option><option selected>Good</option><option>Soft</option><option>Heavy</option></select></div>
+      <div class="rd-field"><label for="rdRaceName">Race name (optional)</label><input id="rdRaceName" maxlength="80" placeholder="e.g. Race 5 — Sunshine Coast"></div>
+    </div>
+    <p class="rd-muted">Enter 2–24 runners. Odds, barriers and track conditions are for reference only and do not affect the winner.</p>
+    <div class="rd-head"><span>Horse name</span><span>Odds ($)</span><span>Barrier</span><span></span></div>
+    <div id="rdEntries"></div>
+    <div class="rd-row" style="justify-content:space-between;align-items:center">
+      <button class="rd-btn secondary" id="rdAdd" type="button">+ Add Runner</button>
+      <strong id="rdCount">2 / 24 runners</strong>
+    </div>
+    <div class="rd-row"><button class="rd-btn" id="rdRun" type="button">🏁 Run Race</button><button class="rd-btn secondary" id="rdAgain" type="button" disabled>↻ Run Again</button><button class="rd-btn secondary" id="rdEdit" type="button">✎ Edit Race</button></div>
+    <p id="rdError" role="alert" style="color:#ffeb3b;font-weight:bold"></p>
+    <div class="rd-note"><strong>Entertainment only.</strong> Raceday randomly simulates a race; it does not predict real-world results or provide betting advice. Every runner has an equal chance of winning, regardless of odds, barrier or track conditions.</div>
+  </div>
+  <div class="rd-card" id="rdRacePanel" hidden>
+    <h3 id="rdRaceTitle">Raceday — Live Race</h3>
+    <div id="rdStatus" class="rd-status" aria-live="polite"></div>
+    <div class="rd-track-scroll"><div id="rdTrackVisual" class="rd-track"></div></div>
+    <div id="rdResult" class="rd-results" aria-live="polite"></div>
+    <p class="rd-muted" style="text-align:center">Simulated result only — not a prediction of the actual race.</p>
+  </div>
+</section>
 <script>
 
 const namePool = [
@@ -921,6 +985,176 @@ betInput.addEventListener("input", updatePayout);
 saveBalance();
 setupRace();
 
+</script>
+
+
+<script>
+/* Raceday logic is isolated from the original Joffa's Horses game. */
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const mode = $('raceMode');
+  const joffa = $('joffaMode');
+  const raceday = $('racedayMode');
+  const entries = $('rdEntries');
+  const panel = $('rdRacePanel');
+  const track = $('rdTrackVisual');
+  const status = $('rdStatus');
+  const result = $('rdResult');
+  const error = $('rdError');
+  const add = $('rdAdd');
+  const again = $('rdAgain');
+  const run = $('rdRun');
+  const edit = $('rdEdit');
+  let rows = [{name:'',odds:'',barrier:'1'}, {name:'',odds:'',barrier:'2'}];
+  let running = false;
+  let token = 0;
+  let lastField = null;
+  const colours = ['#e53935','#1e88e5','#ffca28','#8e24aa','#f06292','#fb8c00','#43a047','#00acc1','#ffffff','#3949ab','#d81b60','#c0ca33'];
+  function safeText(el, value) { el.textContent = value; return el; }
+  function node(tag, className, value) { const el = document.createElement(tag); if (className) el.className = className; if (value !== undefined) el.textContent = value; return el; }
+  function showMode() {
+    const isRaceday = mode.value === 'raceday';
+    joffa.style.display = isRaceday ? 'none' : '';
+    raceday.style.display = isRaceday ? 'block' : 'none';
+  }
+  mode.addEventListener('change', showMode);
+  function renderEntries() {
+    entries.replaceChildren();
+    rows.forEach((r,i) => {
+      const line = node('div','rd-entry');
+      [['name','text','Horse name'],['odds','text','e.g. 4.50'],['barrier','number','Barrier']].forEach(([field,type,placeholder]) => {
+        const input = document.createElement('input');
+        input.type = type; input.placeholder = placeholder; input.value = r[field];
+        input.setAttribute('aria-label', `${field} for runner ${i+1}`);
+        if (field === 'name') input.maxLength = 65;
+        if (field === 'barrier') { input.min = '1'; input.max = '24'; input.step = '1'; }
+        if (field === 'odds') input.inputMode = 'decimal';
+        input.addEventListener('input', () => { r[field] = input.value; lastField = null; again.disabled = true; });
+        line.append(input);
+      });
+      const remove = node('button','', '×'); remove.type = 'button'; remove.title = 'Remove runner'; remove.setAttribute('aria-label',`Remove runner ${i+1}`);
+      remove.disabled = rows.length <= 2 || running;
+      remove.addEventListener('click', () => { if (rows.length > 2 && !running) { rows.splice(i,1); lastField = null; again.disabled = true; renderEntries(); } });
+      line.append(remove); entries.append(line);
+    });
+    $('rdCount').textContent = `${rows.length} / 24 runners`;
+    add.disabled = rows.length >= 24 || running;
+  }
+  add.addEventListener('click', () => {
+    if (rows.length >= 24 || running) return;
+    const used = new Set(rows.map(r => Number(r.barrier)));
+    let next = 1; while (used.has(next) && next <= 24) next++;
+    rows.push({name:'',odds:'',barrier:String(next)});
+    lastField = null; again.disabled = true; renderEntries();
+  });
+  function parseField() {
+    if (rows.length < 2 || rows.length > 24) throw Error('Please enter between 2 and 24 runners.');
+    const field = rows.map((r,i) => {
+      const name = r.name.trim(); const odds = r.odds.trim().replace(/^\$/,''); const barrier = Number(r.barrier);
+      if (!name) throw Error(`Enter a horse name for runner ${i+1}.`);
+      if (!odds || !Number.isFinite(Number(odds)) || Number(odds) <= 1) throw Error(`Enter valid decimal odds greater than $1.00 for ${name}.`);
+      if (!Number.isInteger(barrier) || barrier < 1 || barrier > 24) throw Error(`Enter a barrier between 1 and 24 for ${name}.`);
+      return {name,odds:Number(odds),barrier};
+    });
+    const barriers = field.map(h => h.barrier);
+    if (new Set(barriers).size !== barriers.length) throw Error('Each horse must have a different barrier number.');
+    return field;
+  }
+  function setLocked(locked) {
+    running = locked; run.disabled = locked; again.disabled = locked || !lastField; edit.disabled = locked;
+    add.disabled = locked || rows.length >= 24;
+    entries.querySelectorAll('input,button').forEach(el => el.disabled = locked || (el.tagName === 'BUTTON' && rows.length <= 2));
+    $('rdTrack').disabled = locked; $('rdRaceName').disabled = locked;
+    mode.disabled = locked;
+  }
+  function wait(ms) { return new Promise(resolve => setTimeout(resolve,ms)); }
+  function makeTrack(field) {
+    track.replaceChildren();
+    const finish = node('div','rd-finish'); track.append(finish);
+    const racers = [];
+    field.forEach((h,i) => {
+      const lane = node('div','rd-lane');
+      const gate = node('div','rd-gate',String(h.barrier));
+      const runner = node('div','rd-runner');
+      const horse = node('span','rd-horse','🐎'); horse.style.filter = `drop-shadow(0 0 2px ${colours[i%colours.length]})`;
+      const name = node('span','rd-runner-name',h.name);
+      name.style.borderLeft = `4px solid ${colours[i%colours.length]}`; name.style.paddingLeft = '4px';
+      runner.append(horse,name); lane.append(gate,runner); track.append(lane); racers.push(runner);
+    });
+    return racers;
+  }
+  async function simulate(field) {
+    const myToken = ++token;
+    setLocked(true);
+    panel.hidden = false; result.textContent = '';
+    const raceName = $('rdRaceName').value.trim() || 'Raceday';
+    $('rdRaceTitle').textContent = `${raceName} — ${$('rdTrack').value} Track — ${field.length} Runners`;
+    const racers = makeTrack(field);
+    panel.scrollIntoView({behavior:'smooth',block:'start'});
+    status.textContent = 'Horses are loading into the barriers...';
+    await wait(650);
+    for (const n of [3,2,1]) { if (myToken !== token) return; status.textContent = `Starting in ${n}...`; await wait(650); }
+    status.textContent = "They're off!";
+    // The winner is chosen uniformly BEFORE animation, independently of odds, barrier and track.
+    const winner = Math.floor(Math.random() * field.length);
+    const duration = 9500;
+    const start = performance.now();
+    const phases = field.map((h,i) => {
+      const pace = i === winner ? 1 : (0.79 + Math.random()*0.17);
+      return {pace, wobble:Math.random()*6.28, position:0};
+    });
+    let lastCall = -1;
+    await new Promise(resolve => {
+      function frame(now) {
+        if (myToken !== token) { resolve(); return; }
+        const progress = Math.min(1,(now-start)/duration);
+        const travel = Math.max(50,track.clientWidth - 12 - 32 - 155 - 58);
+        const standings = [];
+        phases.forEach((p,i) => {
+          const base = progress * p.pace;
+          const fluctuation = Math.sin(progress*11+p.wobble)*0.017*Math.sin(Math.PI*progress);
+          const position = i === winner ? Math.max(0,Math.min(1,base+fluctuation)) : Math.max(0,Math.min(.98,base+fluctuation));
+          p.position = position;
+          racers[i].style.transform = `translateX(${Math.max(0,travel*position)}px)`;
+          standings.push({i,position});
+        });
+        standings.sort((a,b)=>b.position-a.position);
+        const segment = Math.floor(progress*6);
+        if (segment !== lastCall && segment > 0 && segment < 6) {
+          lastCall = segment;
+          const leader = field[standings[0].i].name;
+          const challenger = field[standings[1].i].name;
+          status.textContent = segment >= 4 ? `${leader} leads! ${challenger} is chasing hard!` : `${leader} takes the lead, with ${challenger} close behind!`;
+        }
+        if (progress < 1) requestAnimationFrame(frame);
+        else resolve();
+      }
+      requestAnimationFrame(frame);
+    });
+    if (myToken !== token) return;
+    // A photo finish is cosmetic and only when the next runner is genuinely close.
+    const runnerUp = phases.filter((p,i)=>i!==winner).sort((a,b)=>b.position-a.position)[0];
+    if (runnerUp && runnerUp.position > .935) { status.textContent = '📸 PHOTO FINISH!'; await wait(1100); }
+    status.textContent = `🏆 ${field[winner].name} wins the simulated race!`;
+    result.textContent = `Winner: Barrier ${field[winner].barrier} — ${field[winner].name} ($${field[winner].odds.toFixed(2)})`;
+    setLocked(false);
+    again.disabled = false;
+  }
+  function begin(reuse) {
+    if (running) return;
+    error.textContent = '';
+    try {
+      const field = reuse && lastField ? lastField.map(h=>({...h})) : parseField();
+      lastField = field.map(h=>({...h}));
+      simulate(field).catch(e => { error.textContent = 'Unable to run race: '+e.message; setLocked(false); });
+    } catch(e) { error.textContent = e.message; }
+  }
+  run.addEventListener('click',()=>begin(false));
+  again.addEventListener('click',()=>begin(true));
+  edit.addEventListener('click',()=>{ if(running)return; $('rdEntries').scrollIntoView({behavior:'smooth',block:'start'}); });
+  renderEntries(); showMode();
+})();
 </script>
 
 </body>
