@@ -1039,7 +1039,7 @@ setupRace();
       remove.addEventListener('click', () => { if (rows.length > 2 && !running) { rows.splice(i,1); lastField = null; again.disabled = true; renderEntries(); } });
       line.append(remove); entries.append(line);
     });
-    $('rdCount').textContent = `${rows.length} / 24 runners`;
+    $('rdCount').textContent = `${rows.length} runners`;
     add.disabled = rows.length >= 24 || running;
   }
   add.addEventListener('click', () => {
